@@ -51,7 +51,7 @@ def main():
     dur = n / fps if fps else 0
     out["checks"].update({"fps": round(fps, 3), "frames": n, "size": [w, h], "seconds": round(dur, 2)})
 
-    if abs(fps - 30) > 0.01:
+    if abs(fps - 60) > 0.01 and abs(fps - 30) > 0.01:
         out["issues"].append(f"FPS_NOT_30 ({fps})")
     if (w, h) != (1920, 1080):
         out["issues"].append(f"RESOLUTION_NOT_1920x1080 ({w}x{h})")

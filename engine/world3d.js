@@ -170,9 +170,19 @@
         ctx.fillStyle = 'rgba(28,22,12,0.06)';
         ctx.fillRect(0, 0, 1, 1);
         if (cellText && size > 3.2) {
-          ctx.fillStyle = inkColor;
-          ctx.font = DFS.font(0.82, 500, T.fonts.serif);
-          ctx.fillText(it.ch, 0.5, 0.54);
+          const det = ax * by - ay * bx;
+          if (det < 0) {
+            // 基底为负（贴字朝下）→ 在局部做一次 Y 翻转，避免字形镜像
+            ctx.translate(0.5, 0.5);
+            ctx.scale(1, -1);
+            ctx.fillStyle = inkColor;
+            ctx.font = DFS.font(0.82, 500, T.fonts.serif);
+            ctx.fillText(it.ch, 0, 0.04);
+          } else {
+            ctx.fillStyle = inkColor;
+            ctx.font = DFS.font(0.82, 500, T.fonts.serif);
+            ctx.fillText(it.ch, 0.5, 0.54);
+          }
         }
         ctx.restore();
       }

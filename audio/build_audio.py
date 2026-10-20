@@ -255,8 +255,30 @@ def build_music(dur):
     m.add(noise_band(8.0, 180, 700, 0.026, seed=6), 39.2, 1.0, 0.15)     # 夜江
 
     # 章节重音
-    for i, tt in enumerate([3.0, 13.5, 23.7, 33.0, 46.9, 54.9, 63.9, 69.9]):
+    for i, tt in enumerate([4.4, 13.5, 23.5, 33.2, 37.8, 54.8, 65.9, 70.9]):
         m.add(boom(1.8, 0.34 if tt not in (54.9,) else 0.22), tt, 1.0, 0.0)
+
+    # ---- V2 音效卡点（视觉落点前 2–3 帧） ----
+    # 印章砸落：1.0 / 8.0 / 50.0 / 83.0
+    for tt, amp in [(0.94, 0.42), (7.94, 0.36), (49.94, 0.34), (82.94, 0.40)]:
+        m.add(boom(1.5, amp, 78, 30), tt, 1.0, 0.0)
+        m.add(noise_band(0.5, 120, 2200, 0.12, seed=int(tt * 10)), tt, 1.0, 0.0)
+    # 秋风与竹叶（14.0–19.5）
+    m.add(noise_band(6.0, 500, 5200, 0.075, seed=31), 13.9, 1.0, -0.25)
+    m.add(noise_band(6.0, 250, 1400, 0.05, seed=32), 14.2, 1.0, 0.25)
+    # 红线劈下 + 子弹时间：低频下坠
+    m.add(boom(2.6, 0.46, 120, 22), 19.94, 1.0, 0.0)
+    m.add(pad(NOTES['D2'], 4.5, 0.10, attack=0.02, release=3.6), 20.0, 1.0, 0.0)
+    # 文字刚体砸地（58.5–61.0）
+    for i, tt in enumerate([58.5, 58.75, 59.05, 59.4, 60.4, 60.55, 60.7, 60.85, 61.0]):
+        m.add(boom(0.6, 0.16 + 0.02 * (i % 3), 110, 45), tt, 1.0, -0.3 + 0.075 * i)
+        m.add(noise_band(0.22, 150, 2600, 0.09, seed=50 + i), tt, 1.0, -0.3 + 0.075 * i)
+    # 四张卡牌翻转（66.2 起，每 6 帧错落）
+    for i, tt in enumerate([66.20, 66.30, 66.40, 66.50]):
+        m.add(noise_band(0.12, 1400, 8000, 0.12, seed=70 + i), tt, 1.0, -0.24 + 0.16 * i)
+        m.add(boom(0.30, 0.09, 220, 90), tt + 0.01, 1.0, -0.24 + 0.16 * i)
+    # 「打成了诗史」重击（67.44）
+    m.add(boom(1.4, 0.30, 90, 34), 67.42, 1.0, 0.0)
 
     # 细节音效
     # 落第朱印：闷响
@@ -299,9 +321,12 @@ def main():
     voice_buf = np.zeros(m.n, dtype=np.float32)
 
     print("=== 旁白 ===")
+    vdefault = story.get("voice") or {}
     for line in story["narration"]:
-        mp3 = tts(line["text"], line.get("voice", "zh-CN-YunjianNeural"),
-                  line.get("rate", "-8%"), line.get("pitch", "-2Hz"))
+        mp3 = tts(line["text"],
+                  line.get("voice") or vdefault.get("name", "zh-CN-YunjianNeural"),
+                  line.get("rate") or vdefault.get("rate", "-8%"),
+                  line.get("pitch") or vdefault.get("pitch", "-2Hz"))
         x = trim(decode(mp3))
         d = len(x) / SR
         print(f"  {line['id']}  start={line['start']:6.2f}s  dur={d:5.2f}s  end={line['start']+d:6.2f}s")

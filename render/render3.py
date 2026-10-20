@@ -17,7 +17,7 @@ import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FFMPEG = os.path.join(ROOT, "tools", "ffmpeg.exe")
-PORT = 8331
+PORT = int(os.environ.get("V2_RENDER_PORT", "8331"))
 W, H = 1920, 1080
 
 
@@ -60,6 +60,9 @@ def open_page(pw):
     page.goto(f"http://127.0.0.1:{PORT}/index.html?render=1", wait_until="load", timeout=120000)
     page.wait_for_function("window.READY === true", timeout=180000)
     page.evaluate("document.fonts.ready")
+    # LOADING 遮罩有 0.4s 淡出，必须等它彻底移除，否则片头几帧会拍到它
+    page.wait_for_function("!document.getElementById('loading')", timeout=15000)
+    page.wait_for_timeout(120)
     page.evaluate("window.seek(0)")
     return browser, page
 

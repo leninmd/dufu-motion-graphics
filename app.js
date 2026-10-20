@@ -33,10 +33,25 @@
     HUD = new DFS.Hud(STORY.hud);
   }
 
+  /* ---------- 调试状态（QA 探针读取） ---------- */
+  function resetDebug() {
+    window.DEBUG_STATE = {
+      textBoxes: [], counters: {}, hud: null, typeField: 0, gullParticles: 0,
+      goldBalls: 0, stamp: null, cards: [], camera: null
+    };
+  }
+  DFS.dbg = function (o) { Object.assign(window.DEBUG_STATE, o); };
+  DFS.dbgBox = function (id, x1, y1, x2, y2, extra) {
+    (window.DEBUG_STATE.textBoxes || (window.DEBUG_STATE.textBoxes = []))
+      .push(Object.assign({ id, x1, y1, x2, y2 }, extra || {}));
+  };
+  window.DEBUG_STATE = { textBoxes: [], counters: {}, hud: null, typeField: 0, gullParticles: 0 };
+
   /* ---------- 主绘制 ---------- */
   function render(t) {
     t = clamp(t, 0, STORY.duration);
     const frame = Math.round(t * FPS);
+    resetDebug();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';

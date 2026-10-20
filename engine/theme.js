@@ -7,7 +7,7 @@ window.DFS = window.DFS || {};
 (function (DFS) {
   'use strict';
 
-  const W = 1920, H = 1080, FPS = 30;
+  const W = 1920, H = 1080, FPS = 60;
   DFS.W = W; DFS.H = H; DFS.FPS = FPS;
   DFS.DURATION = 85;
   DFS.sceneRegistry = DFS.sceneRegistry || {};
