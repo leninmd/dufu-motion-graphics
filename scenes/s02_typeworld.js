@@ -1,436 +1,501 @@
 /* =========================================================================
-   s02_typeworld.js — 4.4–13.6s  盛唐抱负 → 安史惊雷
-   4.4–7.8  俯视活字版面缓推；「会当凌绝顶」「致君尧舜上」朱砂 3D 字块 spring 升起
-   7.8–9.5  巨型斜印「落第」砸在望岳那排之上 + 震屏 + 两行灰色批注
-   9.5–13.6 焦黑压顶；血红「乱」印；描边「七五五」；「国破山河在」逐字 + 朱圈
+   s02_typeworld.js — 10.2–24.3s（L 0..14.1）· 绝顶
+   0.0–2.8   两组点云群山自对数螺旋升腾：远山青绿 #3E5147 / 近山墨黑 #1A1A18
+             cam.z −14 → −8，focus 0.15 → 0.35，yaw 缓转；底色 paper → 叠 30% 冷雾
+   2.8–4.5   45° 俯角沿山脊高速下压 → 猛烈上摇拉起（pitch −0.55 → −0.02，pos.y 8 → 2.2）
+             山脊细墨线作运动参照，三重复本拉出残影
+   4.6–6.4   拉起完成：孤石 + 背对镜头的人影（竹杖）+ 云海；群峰缩成脚下墨点
+   7.8–14.1  静帧 Hold：75% 留白
+   文字全部取自 storyboard.v3.json：s02_a / s02_b / s02_note / s02_year，逐字照抄。
    ========================================================================= */
 (function (DFS) {
   'use strict';
   const { W, H, clamp, lerp, Ease } = DFS;
   const T = DFS.THEME;
   const HUB = DFS.HUB;
+  const V3 = DFS.V3;
 
-  const POEM_TEXT =
-    '国破山河在城春草木深感时花溅泪恨别鸟惊心烽火连三月家书抵万金白头搔更短浑欲不胜簪' +
-    '会当凌绝顶一览众山小致君尧舜上再使风俗淳朱门酒肉臭路有冻死骨无边落木萧萧下不尽长江滚滚来' +
-    '万里悲秋常作客百年多病独登台';
+  /* ---------- 群山 ---------- */
+  const RIDGE_W = 34, RIDGE_H = 7.2;
+  // 与 RidgeCloud 同一套山形，才让"实心山体 + 点云"重合
+  const PEAKS = [
+    [[-11, 4.2, 1.00], [-2.5, 3.0, 0.82], [7, 4.6, 1.05], [15, 2.6, 0.60]],
+    [[-7, 5.0, 0.86], [3, 4.2, 1.00], [12, 3.2, 0.70]],
+    [[-1.5, 3.4, 1.00], [1.5, 2.2, 0.72]]
+  ];
+  const RIDGE_BASE = [0.12, 0.08, 0.05];
 
-  const ROW1 = Array.from('会当凌绝顶');
-  const ROW2 = Array.from('致君尧舜上');
-  const GUOPO = Array.from('国破山河在');
-  const ROW1_Y = 430, ROW1_SIZE = 132, ROW1_GAP = 22;
-  const ROW2_Y = 650, ROW2_SIZE = 116, ROW2_GAP = 20;
-  const GUOPO_Y = 600, GUOPO_SIZE = 112, GUOPO_STEP = 122;
-  const STAMP_X = 1400, STAMP_Y = 310, STAMP_SIZE = 260;
+  /* ---------- 诗（右侧竖排，右起） ---------- */
+  const POEM_SIZE = 82, POEM_GAP = 1.18;
+  const POEM_CY = 428;                       // 竖排块中心 → 首字顶 ≈ 190
+  const POEM_A_X = 1700, POEM_B_X = 1595;
+  const POEM_H = POEM_SIZE * POEM_GAP * 5 + POEM_SIZE * 0.6;
 
-  const rowWidth = (chars, size, gap) => chars.length * size + (chars.length - 1) * gap;
+  /* ---------- 落款 / 纪年 ---------- */
+  const NOTE_SIZE = 26, YEAR_SIZE = 20;
+  const NOTE_R = 1745, NOTE_Y = 754, YEAR_Y = 794;
+  const T_NOTE = 10.80, T_YEAR = 10.95;
 
-  DFS.sceneRegistry['s02'] = class Scene02 {
+  /* ---------- 孤石 ---------- */
+  const ROCK_X = 700, ROCK_Y = 770, ROCK_W = 280, ROCK_H = 90;
+
+  DFS.sceneRegistry['s02'] = class Scene02V3 {
     constructor() {
-      this.field = new DFS.TypeField({
-        seed: 16350, rows: 40, cols: 40, spacing: 0.86,
-        blockW: 0.74, blockH: 0.56, gap: 0, text: POEM_TEXT
-      });
-      this.cam = new DFS.Camera({ pos: { x: 0, y: 5.0, z: 9.0 }, yaw: 0, pitch: -0.88 });
-      this.zFar = ((this.field.rows - 1) / 2) * this.field.spacing;
-      this._stampCv = null;
+      this.far = new DFS.RidgeCloud({ count: 12000, width: RIDGE_W, height: RIDGE_H, depth: 11, seed: 7028 });
+      this.near = new DFS.RidgeCloud({ count: 28000, width: RIDGE_W, height: RIDGE_H, depth: 9, seed: 5121 });
+      this.cam = new DFS.Camera({ pos: { x: 0, y: 8, z: -14 }, yaw: 0.10, pitch: -0.46 });
+      this.camFar = new DFS.Camera({ pos: { x: 8, y: 46, z: -44 }, yaw: 0.02, pitch: -0.34 });
+      const texts = (DFS.STORY && DFS.STORY.texts) || {};
+      this.a = texts.s02_a || '';
+      this.b = texts.s02_b || '';
+      this.note = texts.s02_note || '';
+      this.year = texts.s02_year || '';
+      this._ridge = this._buildRidge();
+      this._rock = this._buildRock();
     }
 
-    /* 远端渐隐：按屏幕纵坐标把最远几排化掉，消除版面被"切断"的硬边 */
-    _horizonY() {
-      const p = this.cam.project({ x: 0, y: 0, z: this.zFar });
-      return p ? p.y : null;
-    }
-
-    /* ---------- 印面烘焙（p=1） ---------- */
-    _stampCanvas() {
-      if (this._stampCv) return this._stampCv;
-      const S = 480;
-      const cv = DFS.mkCanvas(S, S);
-      const c = cv.getContext('2d');
-      c.translate(S / 2, S / 2);
-      HUB.inkStampSplash(c, 0, 0, 1, 3301, {
-        size: STAMP_SIZE, text: '落第', chars: 'v', rotate: -0.22
-      });
-      this._stampCv = cv;
-      return cv;
-    }
-
-    /* ---------- 活字版面（自绘：修正 TypeField.drawFlat 的字形纵向镜像） ---------- */
-    _flat(ctx, cam, t, o) {
-      const items = this.field.items;
-      const hw = this.field.blockW * 0.46;
-      const hd = this.field.spacing * 0.44;
-      const lift = o.lift || 0;
-      const fogNear = o.fogNear ?? 2, fogFar = o.fogFar ?? 13;
-      const alphaMul = o.alphaMul ?? 1;
-      const ink = o.ink || '24,18,10';
-      const inkA = o.inkA ?? 0.82;
-      const plateA = o.plateA ?? 0.055;
-      const list = [];
-      for (let i = 0; i < items.length; i++) {
-        const it = items[i];
-        const y = lift * (0.2 + it.phase * 0.5);
-        const p0 = cam.project({ x: it.x - hw, y, z: it.z - hd });
-        if (!p0) continue;
-        const p1 = cam.project({ x: it.x + hw, y, z: it.z - hd });
-        const p2 = cam.project({ x: it.x + hw, y, z: it.z + hd });
-        const p3 = cam.project({ x: it.x - hw, y, z: it.z + hd });
-        if (!p1 || !p2 || !p3) continue;
-        const z = (p0.z + p2.z) * 0.5;
-        if (z > fogFar + 8) continue;
-        const minX = Math.min(p0.x, p3.x), maxX = Math.max(p1.x, p2.x);
-        const minY = Math.min(p0.y, p1.y), maxY = Math.max(p2.y, p3.y);
-        if (maxX < -90 || minX > W + 90 || maxY < -90 || minY > H + 90) continue;
-        list.push({ it, p0, p1, p3, z });
+    /* 山脊线（运动参照）：一条主脊 + 三处峰，归一化高度 0..1.3 */
+    _buildRidge() {
+      const r = DFS.rng(9142);
+      const pts = [];
+      const N = 72;
+      for (let i = 0; i <= N; i++) {
+        const u = i / N;
+        const x = -90 + u * (W + 180);
+        const h = 0.42 * Math.exp(-Math.pow((u - 0.17) / 0.085, 2))
+          + 0.95 * Math.exp(-Math.pow((u - 0.46) / 0.095, 2))
+          + 0.60 * Math.exp(-Math.pow((u - 0.73) / 0.075, 2))
+          + 0.30 * Math.exp(-Math.pow((u - 0.91) / 0.065, 2))
+          + 0.025 * (r() - 0.5);
+        pts.push({ x, h: Math.max(0.02, h) });
       }
-      list.sort((a, b) => b.z - a.z);
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (let k = 0; k < list.length; k++) {
-        const it = list[k].it, p0 = list[k].p0, p1 = list[k].p1, p3 = list[k].p3, z = list[k].z;
-        const fog = clamp((z - fogNear) / (fogFar - fogNear));
-        let a = Math.pow(1 - fog, 1.5) * alphaMul;
-        if (o.topFade != null) a *= clamp((p3.y - o.topFade) / (o.topFadeSpan || 220));
-        if (a < 0.02) continue;
-        const ux = p1.x - p0.x, uy = p1.y - p0.y;
-        const vx = p0.x - p3.x, vy = p0.y - p3.y;
-        if (Math.hypot(ux, uy) < 2.4) continue;
-        ctx.save();
-        ctx.setTransform(ux, uy, vx, vy, p3.x, p3.y);
-        ctx.globalAlpha = a * plateA;
-        ctx.fillStyle = 'rgba(' + ink + ',1)';
-        ctx.fillRect(0, 0, 1, 1);
-        ctx.globalAlpha = a * inkA;
-        ctx.translate(0.5, 0.5);
-        ctx.rotate(it.rot);
-        ctx.font = DFS.font(0.62 + it.phase * 0.12, 500, T.fonts.serif);
-        ctx.fillText(it.ch, 0, 0);
-        ctx.restore();
-      }
-      ctx.restore();
+      return pts;
     }
 
-    /* ---------- 一排朱砂立体字块：spring 错落升起 + 阴影 + settle 抖动 ---------- */
-    _row(ctx, chars, cy, size, gap, startL, seed, L, outA, fall) {
-      const total = rowWidth(chars, size, gap);
-      const x0 = W / 2 - total / 2;
-      for (let i = 0; i < chars.length; i++) {
-        const st = startL + HUB.stagger(i, { frames: 5 });
-        if (L <= st) continue;
-        const e = clamp((L - st) / 1.05);
-        const sp = HUB.springPhysics(e, { stiffness: 190, damping: 13, mass: 1, duration: 1.0 });
-        const ent = HUB.multiEntrance(L, st, { duration: 0.50, rise: 0, scaleFrom: 0.90 });
-        const x = x0 + i * (size + gap) + size / 2;
-        const settle = Math.sin(e * 34 + i * 1.9) * 2.0 * Math.max(0, 1 - e * 1.4);
-        const y = cy + (1 - sp) * 210 + settle + fall;
-        const rot = (1 - sp) * (i % 2 ? 0.11 : -0.09) + 0.012 * Math.sin(i * 2.1 + seed);
-        const a = clamp(ent.alpha) * outA;
-        if (a < 0.01) continue;
+    /* 孤石：宽顶、陡壁、崩积底缘（px，相对中心；下半沉进云海） */
+    _buildRock() {
+      return [
+        [-140, -22], [-118, -34], [-86, -27], [-58, -38], [-20, -30],
+        [14, -39], [46, -30], [82, -36], [112, -24], [140, -16],
+        [147, 6], [136, 28], [118, 46],
+        [96, 68], [64, 86], [28, 104], [2, 122],
+        [-30, 98], [-58, 80], [-84, 62],
+        [-112, 44], [-132, 22], [-147, 2]
+      ];
+    }
 
-        // 落地阴影（越接近落位越实）
-        const sh = clamp(1 - (y - cy) / 210);
-        if (sh > 0.02) {
-          const sx = x + size * 0.10, sy = cy + size * 0.60;
-          const g = ctx.createRadialGradient(sx, sy, 2, sx, sy, size * 0.80);
-          g.addColorStop(0, 'rgba(34,20,8,' + (0.34 * sh * outA).toFixed(3) + ')');
-          g.addColorStop(0.55, 'rgba(34,20,8,' + (0.13 * sh * outA).toFixed(3) + ')');
-          g.addColorStop(1, 'rgba(34,20,8,0)');
-          ctx.save();
-          ctx.fillStyle = g;
-          ctx.beginPath();
-          ctx.ellipse(sx, sy, size * 0.72, size * 0.26, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
+    /* 山体高度场（0..1.2），与 RidgeCloud 的 _ridge 同形 */
+    _rh(x, layer) {
+      const ps = PEAKS[layer];
+      let h = RIDGE_BASE[layer];
+      for (let i = 0; i < ps.length; i++) {
+        h += ps[i][2] * Math.exp(-Math.pow((x - ps[i][0]) / ps[i][1], 2));
+      }
+      h += (DFS.fbm(x * 0.22 + layer * 7.3, layer * 3.1, 3) - 0.5) * 0.13;
+      return Math.max(0.02, h);
+    }
+
+    /* 实心山体：同形轮廓 → 山才立得住；点云再压在表面做颗粒 */
+    _mass(c, cam, o) {
+      const N = 200;
+      const base = o.base ?? -45;          // 底缘沉到画外，避免半透明层的内部接缝
+      const squeeze = 1 - o.focus * 0.62;
+      for (let layer = 2; layer >= 0; layer--) {
+        const zc = (layer - 1) * o.depth * 0.52;
+        const hMax = o.height * (0.62 + 0.19 * layer);
+        const top = [], bot = [];
+        let ok = 0;
+        for (let i = 0; i <= N; i++) {
+          const xr = -o.width / 2 + (i / N) * o.width;
+          const h = this._rh(xr, layer);
+          const y = h * hMax * (1 + o.focus * (0.55 - Math.min(0.5, Math.abs(xr) / 16)));
+          const x = xr * squeeze;
+          const pt = cam.project({ x, y, z: zc });
+          const pb = cam.project({ x, y: base, z: zc });
+          top.push(pt); bot.push(pb);
+          if (pt) ok++;
         }
-
-        DFS.redTile(ctx, {
-          x, y, size, ch: chars[i], rot, alpha: a,
-          scale: 0.88 + 0.12 * sp, seed: seed + i * 3, depth: 0.15
-        });
+        if (ok < 2) continue;
+        c.beginPath();
+        let started = false;
+        for (let i = 0; i <= N; i++) {
+          const p = top[i];
+          if (!p) continue;
+          if (!started) { c.moveTo(p.x, p.y); started = true; } else c.lineTo(p.x, p.y);
+        }
+        for (let i = N; i >= 0; i--) {
+          const p = bot[i];
+          if (p) c.lineTo(p.x, p.y);
+        }
+        c.closePath();
+        c.globalAlpha = clamp(o.alpha * (0.82 + 0.09 * (2 - layer)));
+        c.fillStyle = o.color;
+        c.fill();
       }
+    }
+
+    /* 山脊线基准高度：镜头下压时整条脊线被抬出画面上方，猛拉时又迅速落回 */
+    _ridgeBase(LL) {
+      if (LL <= 2.90) return 905 + 12 * Math.sin(LL * 0.6);
+      const pD = clamp((LL - 2.90) / 1.10);
+      const pU = clamp((LL - 3.98) / 0.52);
+      return 905 - 720 * Ease.inCubic(pD) + 580 * Ease.outExpo(pU);
+    }
+
+    /* 远望的群峰：缩成墨点（几笔小山尖，藏在云海里） */
+    _peakDots(c, alpha) {
+      const r = DFS.rng(3357);
+      c.save();
+      for (let i = 0; i < 34; i++) {
+        const x = 40 + r() * (W - 80);
+        const y = 858 + r() * 46;
+        const h = 7 + r() * 30;
+        const w = h * (1.1 + r() * 1.5);
+        const a = alpha * (0.16 + r() * 0.52);
+        c.fillStyle = 'rgba(24,24,22,' + a.toFixed(4) + ')';
+        c.beginPath();
+        c.moveTo(x - w * 0.5, y + h * 0.42);
+        c.lineTo(x - w * 0.08, y - h * 0.5);
+        c.lineTo(x + w * 0.40, y + h * 0.38);
+        c.closePath();
+        c.fill();
+      }
+      c.restore();
+    }
+
+    /* 三重复本 → 运动残影：贴得近、越淡，才像被速度拉出来的一道烟 */
+    _ridgeTrail(c, baseY, dY, alpha) {
+      const off0 = clamp(-dY * 0.34, -120, 120);
+      const layers = [[0, 0.90, 2.2], [1, 0.46, 1.6], [2, 0.20, 1.1]];
+      c.save();
+      c.lineCap = 'round';
+      c.lineJoin = 'round';
+      for (let k = 0; k < layers.length; k++) {
+        const off = off0 * layers[k][0];
+        c.strokeStyle = 'rgba(22,20,16,' + (alpha * layers[k][1]).toFixed(3) + ')';
+        c.lineWidth = layers[k][2];
+        c.beginPath();
+        for (let i = 0; i < this._ridge.length; i++) {
+          const p = this._ridge[i];
+          const y = baseY + off - p.h * 300;
+          if (i === 0) c.moveTo(p.x, y); else c.lineTo(p.x, y);
+        }
+        c.stroke();
+      }
+      c.restore();
     }
 
     draw(ctx, L, t) {
-      const frame = Math.round(L * DFS.FPS);
+      /* ---------- 相机 ---------- */
+      const pIn = Ease.inOutCubic(clamp(L / 2.8));            // 10.2–13.0 升腾
+      const diveP = clamp((L - 2.8) / 1.2);                    // 13.0–14.2 下压
+      const whipP = clamp((L - 3.95) / 0.50);                  // 13.95–14.45 猛拉
+
+      const camY = L < 2.8 ? 8.0 : lerp(8.0, 2.2, Ease.inCubic(diveP));
+      const camZ = L < 2.8
+        ? lerp(-14, -8, pIn)
+        : lerp(-8, -6.6, Ease.inOutCubic(clamp((L - 2.8) / 1.6)));
+      let pitch = L < 2.8 ? lerp(-0.46, -0.55, pIn) : lerp(-0.55, -0.02, Ease.outExpo(whipP));
+      // 拉起后的阻尼余摆（连续，不跳变）
+      if (L > 4.42) pitch += Math.exp(-(L - 4.42) * 4.2) * Math.sin((L - 4.42) * 9.0) * 0.020;
+      pitch += 0.0016 * Math.sin(L * 0.62);
+      const yaw = lerp(0.10, -0.02, pIn) + 0.006 * Math.sin(L * 0.30);
+
+      this.cam.pos = { x: 0.10 * Math.sin(L * 0.22), y: camY, z: camZ };
+      this.cam.pitch = pitch;
+      this.cam.yaw = yaw;
 
       /* ---------- 时间线 ---------- */
-      const darkP = HUB.ease.inOutCubic(clamp((L - 5.10) / 0.92));
-      const stampP = clamp((L - 3.40) / 0.45);
-      const impactF = Math.round((3.40 + 0.45 * 0.35) * DFS.FPS);
-      const shake = (frame >= impactF)
-        ? HUB.cameraShake(frame, { amp: 14, decay: 7.5, startFrame: impactF, seed: 9 })
-        : { x: 0, y: 0, rot: 0 };
-      const rowOutA = HUB.fastExit(L, 4.86, { duration: 0.34, rise: -70 }).alpha;
-      const rowFall = (1 - rowOutA) * 60;
+      const focus = lerp(0.15, 0.35, clamp(L / 5.0));
+      const nearA = clamp(L / 1.20) * (1 - clamp((L - 4.00) / 0.45));   // 近山在猛拉中散尽
+      const dotA = Ease.inOutCubic(clamp((L - 4.55) / 1.15));           // 群峰缩成墨点
+      const cloudA = Ease.inOutCubic(clamp((L - 4.20) / 1.55));         // 云海
+      const rockP = HUB.multiEntrance(L, 4.95, { duration: 0.85, rise: 26, scaleFrom: 0.97 });
+      const ridgeA = (1 - clamp((L - 4.55) / 0.55)) * clamp((L - 2.55) / 0.35);
 
-      /* ---------- 摄像机：俯视缓推 → 暗场微降 ---------- */
-      const push = HUB.ease.inOutCubic(clamp(L / 3.6));
-      const sinkG = clamp((L - 5.10) / 4.20);
-      const sink = -2.7 * sinkG * sinkG;
-      const shk = Math.max(Math.abs(shake.x), Math.abs(shake.y)) > 0.2;
-      this.cam.pos = {
-        x: 0.10 * Math.sin(L * 0.30) + (shk ? shake.x / 165 : 0),
-        y: lerp(5.0, 4.3, push) - darkP * 0.30 - (shk ? shake.y / 165 : 0),
-        z: lerp(9.0, 7.2, push)
-      };
-      this.cam.pitch = lerp(-0.88, -0.80, push);
-      this.cam.yaw = 0.010 * Math.sin(L * 0.35);
+      // 俯冲时涌入的白云：遮住山体明暗切换，也把"跌进云海"演出来
+      let mistA = 0;
+      if (L > 2.9 && L <= 4.15) mistA = 0.72 * Ease.inOutCubic(clamp((L - 2.9) / 1.25));
+      else if (L > 4.15) mistA = 0.72 * (1 - Ease.inOutCubic(clamp((L - 4.15) / 1.15)));
 
-      DFS.dbg({ typeField: this.field.items.length });
+      // 升腾：外层旋进 + 放大，收束到静止（对数螺旋感）
+      const swirl = 1 - Ease.outCubic(clamp(L / 2.6));
 
-      /* ---------- 活字地面：暗场里由墨色转为纸色浮雕 ---------- */
-      const fieldA = 1 - clamp((L - 5.30) / 6.6) * 0.72;
-      const ink = Math.round(lerp(24, 226, darkP)) + ',' +
-        Math.round(lerp(18, 216, darkP)) + ',' +
-        Math.round(lerp(10, 196, darkP));
-      const inkA = lerp(0.80, 0.52, darkP);
+      const poemA = HUB.multiEntrance(L, 8.00, { duration: 0.85, rise: 22 });
+      const poemB = HUB.multiEntrance(L, 9.80, { duration: 0.85, rise: 22 });
+      const noteE = HUB.multiEntrance(L, T_NOTE, { duration: 0.70, rise: 10 });
+      const yearE = HUB.multiEntrance(L, T_YEAR, { duration: 0.70, rise: 8 });
 
-      ctx.save();
-      HUB.applyCameraShake(ctx, shake);
+      // 底色：paper → 30% 冷雾；登顶后空气转清
+      const fogBase = 0.30 * Ease.inOutCubic(clamp(L / 2.8))
+        * (1 - 0.42 * Ease.inOutCubic(clamp((L - 5.6) / 1.6)));
 
-      HUB.fiveLayerStack(ctx, t, {
-        dark: darkP > 0.5,
-        grade: darkP > 0.5 ? 'cold' : 'warm',
-        grain: 0.24,
-        vignette: 0.16,
-        vignetteMid: 0.02,
-        /* ---- L1：宣纸 → 焦黑 ---- */
-        layer1: (c) => {
-          c.drawImage(DFS.getPaper(), -W * 0.03, -H * 0.03, W * 1.06, H * 1.06);
-          if (darkP < 0.999) {
-            DFS.drawGradientMesh(c, t, {
-              c1: 'rgba(255,250,232,0.50)', c2: 'rgba(120,104,78,0.14)',
-              a1: 1 - darkP, a2: 1 - darkP
-            });
-          }
-          if (darkP > 0.001) {
-            c.save();
-            c.globalAlpha = darkP;
-            DFS.drawNight(c, { inner: '#2A2925', mid: '#1C1B18', outer: '#141413' });
-            c.restore();
-            const og = c.createLinearGradient(0, 0, 0, H);
-            og.addColorStop(0, 'rgba(20,20,19,' + (0.20 * darkP).toFixed(3) + ')');
-            og.addColorStop(0.55, 'rgba(14,14,13,' + (0.44 * darkP).toFixed(3) + ')');
-            og.addColorStop(1, 'rgba(6,6,6,' + (0.82 * darkP).toFixed(3) + ')');
-            c.fillStyle = og;
+      V3.eight(ctx, t, {
+        grade: 'cold',
+        grain: 0.36,
+        vignette: 0.24,
+        vignetteMid: 0.03,
+        dustAlpha: 0.30,
+        dustOpts: { color: '226,214,186' },
+
+        /* ---- L1 纸 → 冷雾 ---- */
+        l1: (c) => {
+          V3.paper(c, {
+            zoom: 1.035 + 0.008 * Math.sin(L * 0.09),
+            ox: 10 * Math.sin(L * 0.07),
+            oy: 6 * Math.cos(L * 0.06)
+          });
+          if (fogBase > 0.002) {
+            const g = c.createLinearGradient(0, 0, 0, H);
+            g.addColorStop(0, 'rgba(150,164,162,' + (fogBase * 1.02).toFixed(3) + ')');
+            g.addColorStop(0.55, 'rgba(156,168,166,' + (fogBase * 0.78).toFixed(3) + ')');
+            g.addColorStop(1, 'rgba(140,150,146,' + (fogBase * 0.95).toFixed(3) + ')');
+            c.fillStyle = g;
             c.fillRect(0, 0, W, H);
           }
+          // 顶部留白的微亮（绝顶天光）
+          const w2 = c.createLinearGradient(0, 0, 0, H * 0.66);
+          w2.addColorStop(0, 'rgba(255,252,242,0.28)');
+          w2.addColorStop(1, 'rgba(255,252,242,0)');
+          c.fillStyle = w2;
+          c.fillRect(0, 0, W, H * 0.66);
         },
-        /* ---- L2：活字版面（俯视推进 → 重力下沉） ---- */
-        layer2: (c) => {
-          if (fieldA > 0.01) {
-            this._flat(c, this.cam, t, {
-              alphaMul: fieldA, fogNear: 1.8, fogFar: 13.0,
-              lift: sink, ink: ink, inkA: inkA, plateA: lerp(0.05, 0.035, darkP),
-              topFade: this._horizonY(), topFadeSpan: 230
-            });
-          }
-        },
-        /* ---- L3：字块 / 印 / 年 / 诗 ---- */
-        layer3: (c) => {
-          /* 1) 两排朱砂字块 */
-          if (L > 0.10 && rowOutA > 0.01) {
-            this._row(c, ROW1, ROW1_Y, ROW1_SIZE, ROW1_GAP, 0.15, 11, L, rowOutA, rowFall);
-            this._row(c, ROW2, ROW2_Y, ROW2_SIZE, ROW2_GAP, 1.90, 41, L, rowOutA, rowFall * 1.2);
-          }
-          if (L > 0.10 && rowOutA > 0.02) {
-            const w1 = rowWidth(ROW1, ROW1_SIZE, ROW1_GAP), w2 = rowWidth(ROW2, ROW2_SIZE, ROW2_GAP);
-            DFS.dbgBox('poem1', W / 2 - w1 / 2, ROW1_Y - ROW1_SIZE / 2, W / 2 + w1 / 2, ROW1_Y + ROW1_SIZE / 2);
-            DFS.dbgBox('poem2', W / 2 - w2 / 2, ROW2_Y - ROW2_SIZE / 2, W / 2 + w2 / 2, ROW2_Y + ROW2_SIZE / 2);
-          }
 
-          /* 2) 巨型斜印「落第」：3.40 起 0.45s 砸满 */
-          if (L > 3.40) {
-            // 印下的压痕阴影，让巨印"砸进"版面而不是浮着
-            if (stampP > 0.20) {
-              const sa = clamp((stampP - 0.20) / 0.45);
-              const g = c.createRadialGradient(STAMP_X + 14, STAMP_Y + 86, 10, STAMP_X + 14, STAMP_Y + 86, 268);
-              g.addColorStop(0, 'rgba(30,16,6,' + (0.30 * sa).toFixed(3) + ')');
-              g.addColorStop(0.6, 'rgba(30,16,6,' + (0.10 * sa).toFixed(3) + ')');
-              g.addColorStop(1, 'rgba(30,16,6,0)');
-              c.fillStyle = g;
-              c.fillRect(STAMP_X - 290, STAMP_Y - 200, 590, 590);
-            }
-            if (stampP < 1) {
-              HUB.inkStampSplash(c, STAMP_X, STAMP_Y, stampP, 3301, {
-                size: STAMP_SIZE, text: '落第', chars: 'v', rotate: -0.22
-              });
-              DFS.dbgBox('luodi', STAMP_X - 156, STAMP_Y - 156, STAMP_X + 156, STAMP_Y + 156);
-            } else {
-              const ex = HUB.fastExit(L, 4.80, { duration: 0.52 });
-              if (ex.alpha > 0.01) {
-                const cv = this._stampCanvas();
-                c.save();
-                c.globalAlpha = ex.alpha * 0.97;
-                c.drawImage(cv, STAMP_X - cv.width / 2, STAMP_Y - cv.height / 2);
-                c.restore();
-                DFS.dbgBox('luodi', STAMP_X - 156, STAMP_Y - 156, STAMP_X + 156, STAMP_Y + 156);
-              }
-            }
-          }
-
-          /* 3) 两行灰色批注（右上，纸色空档里） */
-          if (L > 3.58) {
-            const na = HUB.ease.outCubic(clamp((L - 3.58) / 0.55)) * (1 - clamp((L - 4.86) / 0.4));
-            if (na > 0.01) {
-              c.save();
-              c.textAlign = 'right';
-              c.textBaseline = 'middle';
-              c.font = DFS.font(22, 400, T.fonts.kai);
-              c.fillStyle = 'rgba(76,68,54,' + (0.56 * na).toFixed(3) + ')';
-              const n1 = '困坐长安十年', n2 = '奉赠韦左丞丈';
-              c.globalAlpha = na;
-              c.fillText(n1, 1806, 176);
-              c.fillStyle = 'rgba(76,68,54,' + (0.44 * na).toFixed(3) + ')';
-              c.fillText(n2, 1806, 208);
-              c.restore();
-              DFS.dbgBox('note1', 1806 - n1.length * 22, 164, 1806, 188);
-              DFS.dbgBox('note2', 1806 - n2.length * 22, 196, 1806, 220);
-            }
-          }
-
-          /* 4) 血红方印「乱」 */
-          if (L > 5.30) {
-            const sp = HUB.springPhysics(clamp((L - 5.30) / 0.9), { stiffness: 170, damping: 12, mass: 1, duration: 1 });
-            const a = clamp(sp * 1.5) * (0.15 + 0.85 * clamp((L - 5.28) / 0.5));
+        /* ---- L2 山水云 ---- */
+        l2: (c) => {
+          if (nearA > 0.012) {
             c.save();
-            const g = c.createRadialGradient(W / 2, 172, 10, W / 2, 172, 240);
-            g.addColorStop(0, 'rgba(217,56,30,' + (0.22 * a).toFixed(3) + ')');
-            g.addColorStop(1, 'rgba(217,56,30,0)');
+            // 对数螺旋升腾：旋进 + 放大 → 落定
+            c.translate(W * 0.52, H * 0.66);
+            c.rotate(-0.13 * swirl);
+            c.scale(1 + 0.20 * swirl, 1 + 0.20 * swirl);
+            c.translate(-W * 0.52, -H * 0.66);
+
+            // 远山（青绿）→ 近山（墨黑）：实心山体 + 点云颗粒
+            this._mass(c, this.cam, {
+              depth: 14, height: RIDGE_H * 1.42, width: RIDGE_W * 2.0,
+              color: '54,82,66', alpha: 0.50 * nearA, focus: focus * 0.7
+            });
+            this.far.draw(c, this.cam, t, {
+              alpha: 0.20 * nearA, color: '54,82,66', size: 1.15, focus: focus, jitter: 1
+            });
+            this._mass(c, this.cam, {
+              depth: 9, height: RIDGE_H, width: RIDGE_W * 2.0,
+              color: '20,20,18', alpha: 0.92 * nearA, focus: focus
+            });
+            this.near.draw(c, this.cam, t, {
+              alpha: 0.20 * nearA, color: '20,20,18', size: 1.0, focus: focus, jitter: 1
+            });
+
+            // 山脚冷雾：只压山脚，别把山头洗灰
+            const g = c.createLinearGradient(0, H * 0.34, 0, H);
+            g.addColorStop(0, 'rgba(216,222,216,0)');
+            g.addColorStop(0.46, 'rgba(216,222,216,' + (0.10 * nearA).toFixed(3) + ')');
+            g.addColorStop(0.76, 'rgba(220,226,220,' + (0.30 * nearA).toFixed(3) + ')');
+            g.addColorStop(1, 'rgba(228,232,226,' + (0.52 * nearA).toFixed(3) + ')');
             c.fillStyle = g;
-            c.fillRect(W / 2 - 240, -68, 480, 480);
+            c.fillRect(0, 0, W, H);
             c.restore();
-            DFS.redTile(c, {
-              x: W / 2, y: lerp(112, 172, sp), size: 108, ch: '乱',
-              rot: (1 - sp) * 0.30, alpha: a, scale: 0.82 + 0.18 * sp, seed: 21, depth: 0.18
+          }
+
+          // 俯冲进云：白光把整帧吃掉，避免"黑屏"，也让山体的明暗转场不跳
+          if (mistA > 0.012) {
+            const mg = c.createLinearGradient(0, 0, 0, H);
+            mg.addColorStop(0, 'rgba(230,234,228,' + (mistA * 0.92).toFixed(3) + ')');
+            mg.addColorStop(0.5, 'rgba(234,238,232,' + mistA.toFixed(3) + ')');
+            mg.addColorStop(1, 'rgba(224,228,222,' + mistA.toFixed(3) + ')');
+            c.fillStyle = mg;
+            c.fillRect(0, 0, W, H);
+            V3.cloudBank(c, t, {
+              count: 9, alpha: 0.5 * mistA, y0: 80, y1: 720, color: '240,243,237'
             });
-            DFS.dbgBox('luan', W / 2 - 54, 172 - 54, W / 2 + 54, 172 + 54);
           }
 
-          /* 5) 描边「七五五」+ 注释（11.95 起快速退场） */
-          if (L > 5.34) {
-            const ent = HUB.multiEntrance(L, 5.34, { duration: 0.9, rise: 26, scaleFrom: 0.96 });
-            const ex = HUB.fastExit(L, 7.55, { duration: 0.42, rise: 70 });
-            const a = ent.alpha * ex.alpha;
-            const yBase = 470 - (1 - ent.p) * 26 - (1 - ex.alpha) * 70;
-            if (a > 0.01) {
-              // 背景压暗衬底：让细线年在活字地面上可读
-              const bg = HUB.ease.outCubic(clamp((L - 5.30) / 0.8)) * darkP;
-              if (bg > 0.01) {
-                c.save();
-                c.translate(W / 2, 545);
-                c.scale(1, 0.52);
-                let g = c.createRadialGradient(0, 0, 40, 0, 0, 660);
-                g.addColorStop(0, 'rgba(9,9,8,' + (0.86 * bg).toFixed(3) + ')');
-                g.addColorStop(0.55, 'rgba(9,9,8,' + (0.58 * bg).toFixed(3) + ')');
-                g.addColorStop(1, 'rgba(9,9,8,0)');
-                c.fillStyle = g;
-                c.fillRect(-660, -660, 1320, 1320);
-                c.restore();
-                // 小字条带
-                c.save();
-                c.translate(W / 2, 700);
-                c.scale(1, 0.16);
-                g = c.createRadialGradient(0, 0, 40, 0, 0, 620);
-                g.addColorStop(0, 'rgba(9,9,8,' + (0.80 * bg).toFixed(3) + ')');
-                g.addColorStop(0.6, 'rgba(9,9,8,' + (0.45 * bg).toFixed(3) + ')');
-                g.addColorStop(1, 'rgba(9,9,8,0)');
-                c.fillStyle = g;
-                c.fillRect(-620, -620, 1240, 1240);
-                c.restore();
-              }
-              DFS.outlineText(c, '七五五', {
-                x: W / 2, y: yBase, size: 330, weight: 300, family: T.fonts.serif,
-                color: 'rgba(240,232,212,0.10)', lw: 11, tracking: 20,
-                alpha: a, scale: 1 + (1 - ent.p) * 0.04
-              });
-              DFS.outlineText(c, '七五五', {
-                x: W / 2, y: yBase, size: 330, weight: 300, family: T.fonts.serif,
-                color: 'rgba(240,232,212,0.95)', lw: 3.8, tracking: 20,
-                alpha: a, scale: 1 + (1 - ent.p) * 0.04
-              });
-              DFS.dbgBox('year755', W / 2 - 515, yBase - 166, W / 2 + 515, yBase + 166);
-            }
-            if (L > 5.72) {
-              const cap = HUB.multiEntrance(L, 5.72, { duration: 0.6, rise: 14 });
-              const ca = cap.alpha * ex.alpha;
-              if (ca > 0.01) {
-                const cy = 700 - (1 - ent.p) * 10 - (1 - ex.alpha) * 70;
-                c.save();
-                c.globalAlpha = ca;
-                c.textBaseline = 'middle';
-                c.textAlign = 'center';
-                c.font = DFS.font(34, 400, T.fonts.serif);
-                const w1 = c.measureText('渔阳鼙鼓动地来').width;
-                c.font = DFS.font(23, 400, T.fonts.mono);
-                const w2 = c.measureText(' · AN LUSHAN 755').width;
-                const left = W / 2 - (w1 + w2) / 2;
-                c.textAlign = 'left';
-                c.font = DFS.font(34, 400, T.fonts.serif);
-                c.fillStyle = 'rgba(238,230,210,0.92)';
-                c.fillText('渔阳鼙鼓动地来', left, cy);
-                c.font = DFS.font(23, 400, T.fonts.mono);
-                c.fillStyle = 'rgba(206,196,174,0.74)';
-                c.fillText(' · AN LUSHAN 755', left + w1, cy + 2);
-                c.restore();
-                DFS.dbgBox('caption', left, cy - 22, left + w1 + w2, cy + 22);
-              }
-            }
+          // 远望：群峰在脚下缩成墨点
+          if (dotA > 0.012) {
+            this._peakDots(c, dotA);
+            const hz = c.createLinearGradient(0, 796, 0, 1004);
+            hz.addColorStop(0, 'rgba(226,230,224,0)');
+            hz.addColorStop(0.34, 'rgba(226,230,224,' + (0.40 * dotA).toFixed(3) + ')');
+            hz.addColorStop(1, 'rgba(226,230,224,0)');
+            c.fillStyle = hz;
+            c.fillRect(0, 780, W, 260);
           }
 
-          /* 6) 「国破山河在」逐字浮现 + 破字朱圈 */
-          if (L > 7.68) {
-            const n = GUOPO.length;
-            const ga = clamp((L - 7.70) / 0.6);
-            if (ga > 0.01) {
-              // 纸色诗句下的暗衬，压住活字地面
-              c.save();
-              c.translate(W / 2, GUOPO_Y + 6);
-              c.scale(1, 0.30);
-              const g = c.createRadialGradient(0, 0, 40, 0, 0, 560);
-              g.addColorStop(0, 'rgba(9,9,8,' + (0.62 * ga * darkP).toFixed(3) + ')');
-              g.addColorStop(0.6, 'rgba(9,9,8,' + (0.34 * ga * darkP).toFixed(3) + ')');
-              g.addColorStop(1, 'rgba(9,9,8,0)');
-              c.fillStyle = g;
-              c.fillRect(-560, -560, 1120, 1120);
-              c.restore();
-            }
+          // 云海（12 层，慢速横移）：暗面 + 亮面，纸太白，云必须带冷灰才看得见
+          if (cloudA > 0.012) {
+            V3.cloudBank(c, t, {
+              count: 12, alpha: 0.20 * cloudA, y0: 884, y1: 1044, color: '170,182,178'
+            });
+            V3.cloudBank(c, t, {
+              count: 9, alpha: 0.44 * cloudA, y0: 840, y1: 972, color: '250,251,246'
+            });
+          }
+        },
+
+        /* ---- L3 绝顶天光（极淡） ---- */
+        l3: (c) => {
+          if (mistA > 0.4) return;                 // 白云期不需要天光
+          c.save();
+          c.translate(W * 0.58, -60);
+          c.rotate(-0.26);
+          V3.volumetricLight(c, t, { count: 3, alpha: 0.034, color: '246,246,235' });
+          c.restore();
+          // 地平线上一抹极淡的天光
+          const g = c.createRadialGradient(W * 0.40, 640, 40, W * 0.40, 640, 640);
+          g.addColorStop(0, 'rgba(255,253,244,0.13)');
+          g.addColorStop(1, 'rgba(255,253,244,0)');
+          c.fillStyle = g;
+          c.fillRect(0, 0, W, H);
+        },
+
+        /* ---- L4 山脊线 / 孤石 / 人影 / 前层云 ---- */
+        l4: (c) => {
+          if (ridgeA > 0.012) {
+            const b0 = this._ridgeBase(L);
+            const b1 = this._ridgeBase(L - 0.11);
+            this._ridgeTrail(c, b0, b0 - b1, ridgeA * 0.85);
+          }
+
+          if (rockP.alpha > 0.012) {
+            const a = rockP.alpha;
+            const dy = rockP.dy;
             c.save();
-            c.font = DFS.font(GUOPO_SIZE, 400, T.fonts.serif);
-            c.textAlign = 'center';
-            c.textBaseline = 'middle';
-            for (let i = 0; i < n; i++) {
-              const st = 7.70 + HUB.stagger(i, { frames: 5 });
-              const e = HUB.multiEntrance(L, st, { duration: 0.55, rise: 24, scaleFrom: 0.94 });
-              if (e.alpha <= 0.01) continue;
-              c.save();
-              c.globalAlpha = e.alpha;
-              c.fillStyle = 'rgba(244,236,216,0.97)';
-              c.fillText(GUOPO[i], W / 2 + (i - 2) * GUOPO_STEP, GUOPO_Y + e.dy);
-              c.restore();
-            }
-            c.restore();
-            DFS.dbgBox(
-              'guopo', W / 2 - GUOPO_STEP * 2 - GUOPO_SIZE / 2, GUOPO_Y - GUOPO_SIZE / 2,
-              W / 2 + GUOPO_STEP * 2 + GUOPO_SIZE / 2, GUOPO_Y + GUOPO_SIZE / 2
-            );
+            c.globalAlpha = a;
+            c.translate(0, dy);
 
-            const cp = clamp((L - 8.42) / 0.6);
-            if (cp > 0.001) {
-              DFS.handCircle(c, {
-                x: W / 2 - GUOPO_STEP, y: GUOPO_Y, rx: 86, ry: 74,
-                progress: Ease.inOutCubic(cp), lw: 5, seed: 27, color: '#D9381E'
-              });
+            // 石下云影（石根埋进云里）
+            const sg = c.createRadialGradient(ROCK_X, ROCK_Y + 76, 6, ROCK_X, ROCK_Y + 76, 260);
+            sg.addColorStop(0, 'rgba(24,26,22,0.34)');
+            sg.addColorStop(1, 'rgba(24,26,22,0)');
+            c.fillStyle = sg;
+            c.fillRect(ROCK_X - 280, ROCK_Y - 80, 560, 320);
+
+            c.translate(ROCK_X, ROCK_Y);
+            // 石体
+            c.beginPath();
+            for (let i = 0; i < this._rock.length; i++) {
+              if (i === 0) c.moveTo(this._rock[i][0], this._rock[i][1]);
+              else c.lineTo(this._rock[i][0], this._rock[i][1]);
             }
+            c.closePath();
+            const rg = c.createLinearGradient(0, -40, 0, 120);
+            rg.addColorStop(0, 'rgba(44,45,39,1)');
+            rg.addColorStop(0.28, 'rgba(20,20,18,1)');
+            rg.addColorStop(0.72, 'rgba(10,10,9,1)');
+            rg.addColorStop(1, 'rgba(30,32,28,1)');
+            c.fillStyle = rg;
+            c.fill();
+
+            // 顶面受光（薄薄一条，别把石头照灰）
+            c.beginPath();
+            for (let i = 0; i <= 9; i++) {
+              const p = this._rock[i];
+              if (i === 0) c.moveTo(p[0], p[1]);
+              else c.lineTo(p[0], p[1]);
+            }
+            for (let i = 9; i >= 0; i--) {
+              c.lineTo(this._rock[i][0] - 5, this._rock[i][1] + 13);
+            }
+            c.closePath();
+            c.fillStyle = 'rgba(132,134,116,0.30)';
+            c.fill();
+
+            // 石纹（只在石面上，别画出轮廓）
+            const rr = DFS.rng(8801);
+            c.strokeStyle = 'rgba(170,170,150,0.13)';
+            c.lineWidth = 1;
+            for (let i = 0; i < 12; i++) {
+              const y0 = -20 + rr() * 74;
+              const x0 = -120 + rr() * 150;
+              c.beginPath();
+              c.moveTo(x0, y0);
+              c.lineTo(x0 + 24 + rr() * 58, y0 + (rr() - 0.5) * 7);
+              c.stroke();
+            }
+            // 石根两道裂隙
+            c.strokeStyle = 'rgba(0,0,0,0.35)';
+            c.lineWidth = 1.6;
+            c.beginPath();
+            c.moveTo(-38, -18);
+            c.lineTo(-30, 36);
+            c.lineTo(-44, 74);
+            c.stroke();
+            c.beginPath();
+            c.moveTo(58, -22);
+            c.lineTo(50, 30);
+            c.stroke();
+            c.restore();
+
+            // 人影：背对镜头，立于石上，竹杖
+            DFS.figure(c, ROCK_X - 14, ROCK_Y - 39 - 2 + dy, 0.9, {
+              color: '8,8,7', alpha: a, t: L, staff: true, breath: 1
+            });
+          }
+
+          // 前层云（压住孤石底脚）
+          if (cloudA > 0.012) {
+            V3.cloudBank(c, t, {
+              count: 7, alpha: 0.30 * cloudA, y0: 846, y1: 1052, color: '236,240,234'
+            });
+          }
+        },
+
+        /* ---- L5 竖排诗 + 落款 ---- */
+        l5: (c) => {
+          if (poemA.alpha > 0.008) {
+            c.save();
+            c.globalAlpha = poemA.alpha;
+            c.translate(0, poemA.dy);
+            V3.inkText(c, this.a, {
+              x: POEM_A_X, y: POEM_CY, size: POEM_SIZE, weight: 800,
+              vertical: true, gap: POEM_GAP, color: '#1A1309', seed: 61
+            });
+            c.restore();
+            DFS.dbgBox('s02_poem_a', POEM_A_X - 46, POEM_CY - POEM_H / 2 + 20,
+              POEM_A_X + 46, POEM_CY + POEM_H / 2 - 30);
+          }
+          if (poemB.alpha > 0.008) {
+            c.save();
+            c.globalAlpha = poemB.alpha;
+            c.translate(0, poemB.dy);
+            V3.inkText(c, this.b, {
+              x: POEM_B_X, y: POEM_CY, size: POEM_SIZE, weight: 800,
+              vertical: true, gap: POEM_GAP, color: '#1A1309', seed: 83
+            });
+            c.restore();
+            DFS.dbgBox('s02_poem_b', POEM_B_X - 46, POEM_CY - POEM_H / 2 + 20,
+              POEM_B_X + 46, POEM_CY + POEM_H / 2 - 30);
+          }
+
+          // 两列下方：落款 + 纪年（右对齐）
+          if (noteE.alpha > 0.008) {
+            c.save();
+            c.globalAlpha = 0.80 * noteE.alpha;
+            c.fillStyle = 'rgb(90,80,62)';
+            c.textAlign = 'right';
+            c.textBaseline = 'middle';
+            c.font = DFS.font(NOTE_SIZE, 400, T.fonts.kai);
+            c.fillText(this.note, NOTE_R, NOTE_Y + noteE.dy);
+            c.restore();
+          }
+          if (yearE.alpha > 0.008) {
+            c.save();
+            c.globalAlpha = 0.62 * yearE.alpha;
+            c.fillStyle = 'rgb(90,80,62)';
+            c.textAlign = 'right';
+            c.textBaseline = 'middle';
+            c.font = DFS.font(YEAR_SIZE, 400, T.fonts.serif);
+            c.fillText(this.year, NOTE_R, YEAR_Y + yearE.dy);
+            c.restore();
+          }
+          if (noteE.alpha > 0.008) {
+            DFS.dbgBox('s02_note', NOTE_R - 360, NOTE_Y - 20, NOTE_R + 6, YEAR_Y + 18);
           }
         }
       });
-
-      ctx.restore();
     }
 
-    hudDark(L) { return L > 5.0; }
+    hudDark() { return false; }
   };
 })(window.DFS);

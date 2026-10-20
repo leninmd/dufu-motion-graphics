@@ -1,506 +1,709 @@
 /* =========================================================================
-   s05_boat.js — 33.1–37.9s（L 0–4.8s）烽火家书 · 万金压信
-   纸白底 → 万金计数器（1 → 10,000）→ 260 颗金球自底部与两侧涌入、
-   堆满下半屏并把中央竖排家书向内挤压 →「烽火连三月 / 家书抵万金」
+   s05_boat.js — 54.1–68.3s（L 0–14.2s）夔门峡江 · 落木 · 怒
+   L 0.00–1.50  从黑场里用圆孔穿越打开夔门峡江（绝壁黑如玄铁）
+   L 0.90–7.90  峡江：深色江面浮沫白线 + 两侧巨大黑色多边形绝壁（上缘参差、崖头挑出）
+                + 江心一叶孤舟（船头小灯）→ 58.0s 起 260 片深褐枯叶像黑蝶砸落江面，
+                触水激起 3px 小白环
+   L 7.90–14.2  静帧 Hold：右起竖排「无边落木萧萧下 / 不尽长江滚滚来」＋下方小字
+   屏幕文字全部取自 storyboard.v3.json 的 texts（原典），无一字杜撰。
    ========================================================================= */
 (function (DFS) {
   'use strict';
-  const { W, H, clamp, lerp, Ease, rng } = DFS;
+  const { W, H, clamp, lerp, Ease, hash } = DFS;
+  const V3 = DFS.V3;
   const HUB = DFS.HUB;
   const T = DFS.THEME;
 
   const CX = 960;
-  const LET = { y: 470, hw: 160, hh: 210 };   // 320 × 420 的信笺
-  const N_COLS = 26, N_ROWS = 10, N_BALLS = N_COLS * N_ROWS;  // 260
+  const HZ = H * 0.545;               // 水面（峡江）
+  const LAND = HZ + 26;               // 枯叶触水线
+  const B_X0 = 980, B_X1 = 900;       // 孤舟漂移
+  const B_Y = H * 0.72;
+  const B_S = 0.62;
+  const T_LEAF = 3.90;                // 58.0s
+  const T_HOLD = 7.90;                // 62.0s
+  const LEAF_T = 0.72;                // 枯叶时间压缩（落得更从容）
+  const RING_LIFE = 0.55;
+  const INK = '#F4EFE6';
 
-  DFS.sceneRegistry['s05'] = class Scene05V2 {
+  let MEAS = null;
+  const meas = () => (MEAS || (MEAS = DFS.mkCanvas(8, 8).getContext('2d')));
+  const mir = (pts) => pts.map(([x, y]) => [1920 - x, y]);
+
+  /* ---------------- 绝壁轮廓（手写参差上缘 + 挑出的崖头） ---------------- */
+  const NEAR_L = [[-60, 1080], [-60, 96], [30, 70], [120, 132], [214, 78], [300, 138],
+    [386, 88], [470, 150], [540, 100], [604, 164], [660, 112], [706, 186],
+    [690, 286], [706, 352], [664, 420], [676, 502], [622, 596], [634, 690],
+    [578, 790], [556, 880], [568, 960], [528, 1080]];
+  const NEAR_R = mir(NEAR_L);
+  const EDGE_L = [[706, 186], [690, 286], [706, 352], [664, 420], [676, 502], [622, 596],
+    [634, 690], [578, 790], [556, 880], [568, 960], [528, 1080]];
+  const EDGE_R = mir(EDGE_L);
+  // 远处：江道尽头的一道低山（纵深）
+  const FAR_RIDGE = [[600, 520], [690, 458], [762, 476], [840, 434], [922, 466], [1002, 430],
+    [1082, 462], [1162, 432], [1242, 468], [1310, 520]];
+
+  DFS.sceneRegistry['s05'] = class Scene05V3 {
     constructor() {
-      this.balls = [];
-      this.pinch = [];
-      this._buildPile();
-      this._buildLetterInk();
-      // 空气里的金屑
-      const r = rng(3311);
-      this.dust = Array.from({ length: 64 }, () => ({
-        x: r() * W, y: H * (0.16 + r() * 0.42), rad: 0.7 + r() * 2.1,
-        ph: r() * 6.283, sp: 0.35 + r() * 1.1, a: 0.15 + r() * 0.5
-      }));
-    }
-
-    /* ---------------- 金球堆 ---------------- */
-    _buildPile() {
-      const rnd = rng(91733);
-      const cellW = W / N_COLS;
-      const rowStep = 86;
-      const balls = [];
-      for (let row = 0; row < N_ROWS; row++) {
-        const near = 1 - row / (N_ROWS - 1);      // 1 = 最前排（底部）
-        for (let c = 0; c < N_COLS; c++) {
-          const hex = (row % 2) ? cellW * 0.5 : 0;
-          const x = c * cellW + cellW * 0.5 + hex + (rnd() - 0.5) * cellW * 0.55 - cellW * 0.25;
-          const edge = Math.abs(x - CX) / (W * 0.5);
-          // 丘形：两侧低，中央高（与金色基床的轮廓咬合）
-          const y = 1046 - row * rowStep + edge * edge * 150 + (rnd() - 0.5) * 34;
-          const rad = clamp(lerp(32, 86, near) * (0.58 + rnd() * 0.68) * (1 - edge * 0.10), 30, 90);
-          // 入场：底部 58% / 左侧 21% / 右侧 21%
-          const roll = rnd();
-          let sx, sy;
-          if (roll < 0.58) { sx = x + (rnd() - 0.5) * 130; sy = H + 240 + rnd() * 240; }
-          else if (roll < 0.79) { sx = -240 - rnd() * 260; sy = y + 60 + rnd() * 150; }
-          else { sx = W + 240 + rnd() * 260; sy = y + 60 + rnd() * 150; }
-          const delay = 0.03 + (1 - near) * 0.46 + rnd() * 0.22;
-          balls.push({ x, y, r: rad, near, sx, sy, delay, tone: rnd(), ph: rnd() * 6.283 });
-        }
-      }
-      balls.sort((a, b) => (a.y - b.y) || (a.r - b.r));
-      this.balls = balls;
-      this.pinch = balls.filter((b) => Math.abs(b.x - CX) < 208 && b.y > 236 && b.y > 0 && b.y < 754);
-      this.pinchSet = new Set(this.pinch);
-    }
-
-    /* ---------------- 家书上的淡墨小楷 ---------------- */
-    _buildLetterInk() {
-      const src = '三月烽火连家书抵万金身在长安心在故园不知老母可曾添衣' +
-                  '儿女尚小乱世飘零若得一字可抵千金夜半灯下执笔难言惟愿平安勿念';
-      const rnd = rng(4821);
-      this.inkChars = [];
-      let idx = 0;
-      for (let c = 0; c < 5; c++) {
-        const col = [];
-        for (let k = 0; k < 15; k++) {
-          col.push({
-            ch: src.charAt(idx % src.length),
-            a: 0.34 + rnd() * 0.30,
-            dx: (rnd() - 0.5) * 1.4,
-            dy: (rnd() - 0.5) * 1.4
-          });
-          idx++;
-        }
-        this.inkChars.push(col);
-      }
-    }
-
-    /* ---------------- 单颗金球 ---------------- */
-    _ball(ctx, x, y, r, tone, a) {
-      ctx.save();
-      ctx.globalAlpha = a;
-      // 接触阴影（压在下层球上）
-      ctx.fillStyle = 'rgba(56,36,9,0.24)';
-      ctx.beginPath();
-      ctx.ellipse(x + r * 0.05, y + r * 0.66, r * 0.92, r * 0.30, 0, 0, 6.28318);
-      ctx.fill();
-      // 球体：径向渐变（高光 #F2D79A → #C59B46 → #8A6320 → #5B3E12）
-      const hi = tone < 0.25 ? '#E9C079' : tone > 0.78 ? '#FBE5B2' : '#F2D79A';
-      const g = ctx.createRadialGradient(x - r * 0.38, y - r * 0.44, r * 0.05, x, y, r * 1.02);
-      g.addColorStop(0, hi);
-      g.addColorStop(0.30, '#C59B46');
-      g.addColorStop(0.72, '#8A6320');
-      g.addColorStop(1, '#5B3E12');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, 6.28318);
-      ctx.fill();
-      // 明暗差：让堆体有前后层次
-      if (tone < 0.30) {
-        ctx.globalAlpha = a * 0.13;
-        ctx.fillStyle = 'rgba(46,28,4,1)';
-        ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28318); ctx.fill();
-      } else if (tone > 0.82) {
-        ctx.globalAlpha = a * 0.08;
-        ctx.fillStyle = 'rgba(255,238,196,1)';
-        ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28318); ctx.fill();
-      }
-      // 底部环境反光（球与球之间的暖光）
-      ctx.globalAlpha = a * 0.55;
-      ctx.strokeStyle = 'rgba(255,216,150,0.30)';
-      ctx.lineWidth = Math.max(1.1, r * 0.055);
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.90, Math.PI * 0.20, Math.PI * 0.80);
-      ctx.stroke();
-      // 左上高光点
-      ctx.globalAlpha = a * 0.95;
-      ctx.fillStyle = 'rgba(255,250,230,0.92)';
-      ctx.beginPath();
-      ctx.ellipse(x - r * 0.40, y - r * 0.44, r * 0.17, r * 0.13, -0.7, 0, 6.28318);
-      ctx.fill();
-      ctx.globalAlpha = a * 0.28;
-      ctx.beginPath();
-      ctx.ellipse(x - r * 0.34, y - r * 0.38, r * 0.35, r * 0.29, -0.7, 0, 6.28318);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    /* ---------------- 金色基床（保证覆盖率的整块金属） ---------------- */
-    _bedTopY(x) {
-      const u = (x - CX) / (W * 0.5);
-      return 246 + 152 * u * u + Math.sin(x * 0.0075 + 1.2) * 14;
-    }
-
-    _bedPath(ctx) {
-      ctx.beginPath();
-      ctx.moveTo(-60, H + 60);
-      for (let x = -60; x <= W + 60; x += 20) ctx.lineTo(x, this._bedTopY(x));
-      ctx.lineTo(W + 60, H + 60);
-      ctx.closePath();
-    }
-
-    _drawBed(ctx) {
-      this._bedPath(ctx);
-      const g = ctx.createLinearGradient(0, 240, 0, H);
-      g.addColorStop(0, '#CFA45C');
-      g.addColorStop(0.20, '#B0863B');
-      g.addColorStop(0.55, '#87601F');
-      g.addColorStop(1, '#3F2D0B');
-      ctx.fillStyle = g;
-      ctx.fill();
-
-      ctx.save();
-      this._bedPath(ctx);
-      ctx.clip();
-      // 堆积体上缘的暗带（球与球之间的缝隙阴影）
-      ctx.strokeStyle = 'rgba(44,28,6,0.24)';
-      ctx.lineWidth = 92;
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      for (let x = -60; x <= W + 60; x += 20) {
-        const y = this._bedTopY(x);
-        if (x === -60) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-      // 两侧与底部的沉暗
-      const side = ctx.createLinearGradient(0, 0, W, 0);
-      side.addColorStop(0, 'rgba(28,18,3,0.60)');
-      side.addColorStop(0.17, 'rgba(28,18,3,0)');
-      side.addColorStop(0.83, 'rgba(28,18,3,0)');
-      side.addColorStop(1, 'rgba(28,18,3,0.60)');
-      ctx.fillStyle = side;
-      ctx.fillRect(0, 0, W, H);
-      const bot = ctx.createLinearGradient(0, H - 320, 0, H);
-      bot.addColorStop(0, 'rgba(24,15,2,0)');
-      bot.addColorStop(1, 'rgba(24,15,2,0.66)');
-      ctx.fillStyle = bot;
-      ctx.fillRect(0, H - 320, W, 320);
-      ctx.restore();
-    }
-
-    /* ---------------- 金球群（含挤压推移） ---------------- */
-    _drawPile(ctx, L, t, sq) {
-      this._drawBed(ctx);
-      const zipped = Array.from(this.pinchSet);
-      for (const b of this.balls) {
-        const p = clamp((L - b.delay) / 0.95);
-        if (p <= 0) continue;
-        const e = Ease.outExpo(p);
-        let x = lerp(b.sx, b.x, e);
-        let y = lerp(b.sy, b.y, e);
-        if (p < 1) y += Math.sin(p * Math.PI) * 9;
-        // 挤压：信笺所在的横带里，球被顶到信笺两侧
-        if (y > 236 && y < 756) {
-          const half = LET.hw * (1 - 0.12 * sq) + b.r + 3;
-          const dx = x - CX;
-          if (Math.abs(dx) < half) x = CX + (dx < 0 ? -1 : 1) * half;
-        }
-        const mm = HUB.idleMicroMotion(t, b.ph);
-        x += mm.dx * 0.5 * p;
-        y += mm.dy * 0.4 * p;
-        if (this.pinchSet.has(b)) continue;      // 压边球稍后画在信笺之上
-        this._ball(ctx, x, y, b.r, b.tone, clamp(p * 3) * (0.74 + 0.26 * b.near));
-      }
-      return zipped;
-    }
-
-    /* ---------------- 信笺 ---------------- */
-    _letterPath(ctx, hw, hh, sq) {
-      const rnd = rng(7721);
-      const jit = 2.4 + sq * 1.6;
-      const N = 16;
-      // 逆时针一圈：右（上→下）→ 下（右→左）→ 左（下→上）→ 上（左→右）
-      const edge = (ax, ay, bx, by, wob) => {
-        for (let i = 1; i <= N; i++) {
-          const u = i / N;
-          const x = lerp(ax, bx, u) + (rnd() - 0.5) * jit * 0.55;
-          const y = lerp(ay, by, u) + (rnd() - 0.5) * jit * 0.55;
-          const nx = -(by - ay), ny = (bx - ax);
-          const nl = Math.hypot(nx, ny) || 1;
-          ctx.lineTo(x + (nx / nl) * Math.sin(u * Math.PI * 3 + wob) * jit * 0.8,
-                     y + (ny / nl) * Math.sin(u * Math.PI * 3 + wob) * jit * 0.8);
-        }
-      };
-      ctx.beginPath();
-      ctx.moveTo(hw + (rnd() - 0.5) * jit, -hh + (rnd() - 0.5) * jit);
-      edge(hw, -hh, hw, hh, 0.4);
-      edge(hw, hh, -hw, hh, 2.1);
-      edge(-hw, hh, -hw, -hh, 4.0);
-      edge(-hw, -hh, hw, -hh, 5.6);
-      ctx.closePath();
-    }
-
-    _drawLetter(ctx, L, sq) {
-      const hw = LET.hw * (1 - 0.12 * sq);          // 宽度收窄 12%
-      const hh = LET.hh * (1 + 0.055 * sq);         // 高度略增
-      const rot = -0.040 + Math.sin(L * 1.55) * 0.016 + sq * 0.058;
-      const cx = CX + Math.sin(L * 1.1) * 2.5;
-      const cy = LET.y + Math.sin(L * 1.35) * 3.5;
-
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(rot);
-      // 投影
-      ctx.shadowColor = 'rgba(52,34,10,0.50)';
-      ctx.shadowBlur = 46;
-      ctx.shadowOffsetY = 24;
-      this._letterPath(ctx, hw, hh, sq);
-      ctx.fillStyle = '#F4EAD5';
-      ctx.fill();
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
-
-      // 纸色渐变 + 内阴影
-      const pg = ctx.createLinearGradient(-hw, -hh, hw, hh);
-      pg.addColorStop(0, '#FCF7EA');
-      pg.addColorStop(0.55, '#F3E9D3');
-      pg.addColorStop(1, '#E1D2B2');
-      ctx.fillStyle = pg;
-      ctx.fill();
-
-      ctx.save();
-      this._letterPath(ctx, hw, hh, sq);
-      ctx.clip();
-
-      // 折痕
-      ctx.strokeStyle = 'rgba(124,104,72,0.16)';
-      ctx.lineWidth = 1.4;
-      for (let i = 1; i <= 3; i++) {
-        const yy = -hh + (hh * 2 / 4) * i;
-        ctx.beginPath();
-        ctx.moveTo(-hw, yy); ctx.lineTo(hw, yy);
-        ctx.stroke();
-      }
-      // 5 列淡墨小楷
-      const cellH = (hh * 1.70) / 15;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = DFS.font(15, 400, T.fonts.kai);
-      ctx.fillStyle = 'rgba(52,36,16,1)';
-      for (let k = 0; k < 5; k++) {
-        const colX = 112 - k * 56;
-        const col = this.inkChars[k];
-        for (let i = 0; i < 15; i++) {
-          const it = col[i];
-          ctx.globalAlpha = it.a;
-          ctx.fillText(it.ch, colX + it.dx, -hh * 0.85 + (i + 0.5) * cellH + it.dy);
-        }
-      }
-      ctx.globalAlpha = 1;
-      // 两侧被金球压出的暗部
-      const band = 30 + 22 * sq;
-      const lp = ctx.createLinearGradient(-hw, 0, -hw + band, 0);
-      lp.addColorStop(0, `rgba(96,64,22,${0.30 + 0.14 * sq})`);
-      lp.addColorStop(1, 'rgba(96,64,22,0)');
-      ctx.fillStyle = lp;
-      ctx.fillRect(-hw, -hh, band, hh * 2);
-      const rp = ctx.createLinearGradient(hw, 0, hw - band, 0);
-      rp.addColorStop(0, `rgba(96,64,22,${0.30 + 0.14 * sq})`);
-      rp.addColorStop(1, 'rgba(96,64,22,0)');
-      ctx.fillStyle = rp;
-      ctx.fillRect(hw - band, -hh, band, hh * 2);
-      // 中部的鼓胀受光（被挤反而顶起来）
-      const boost = ctx.createRadialGradient(-hw * 0.1, -hh * 0.15, 10, 0, 0, hh * 1.1);
-      boost.addColorStop(0, `rgba(255,252,240,${0.20 * sq})`);
-      boost.addColorStop(1, 'rgba(255,252,240,0)');
-      ctx.fillStyle = boost;
-      ctx.fillRect(-hw, -hh, hw * 2, hh * 2);
-      ctx.restore();
-
-      // 起毛的边
-      ctx.globalAlpha = 0.5;
-      ctx.strokeStyle = 'rgba(252,246,232,0.75)';
-      ctx.lineWidth = 1.6;
-      this._letterPath(ctx, hw, hh, sq);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    /* ---------------- 压在信笺上的边缘球 ---------------- */
-    _drawPinch(ctx, L, t, sq) {
-      for (const b of this.pinch) {
-        const p = clamp((L - b.delay) / 0.95);
-        if (p <= 0) continue;
-        const e = Ease.outExpo(p);
-        let x = lerp(b.sx, b.x, e);
-        let y = lerp(b.sy, b.y, e);
-        if (y > 236 && y < 756) {
-          const half = LET.hw * (1 - 0.12 * sq) + b.r + 3;
-          const dx = x - CX;
-          if (Math.abs(dx) < half) x = CX + (dx < 0 ? -1 : 1) * half;
-        }
-        const mm = HUB.idleMicroMotion(t, b.ph);
-        x += mm.dx * 0.5 * p;
-        y += mm.dy * 0.4 * p;
-        this._ball(ctx, x, y, b.r, b.tone, clamp(p * 3) * (0.74 + 0.26 * b.near));
-      }
-    }
-
-    /* ---------------- 万金计数器 ---------------- */
-    _counter(ctx, L, t) {
-      const value = Math.round(1 + 9999 * Ease.outExpo(clamp((L - 0.15) / 3.2)));
-      DFS.dbg({ counters: { wanjin: value } });
-      const txt = DFS.km(value);
-      const e = HUB.multiEntrance(L, 0.12, { duration: 0.65, rise: 28, scaleFrom: 0.94 });
-      const mm = HUB.idleMicroMotion(t, 1.4);
-
-      const x = 120, yNum = 112;
-      ctx.save();
-      ctx.globalAlpha = e.alpha;
-      const dy = e.dy + mm.dy * 0.6;
-      // 标签
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.font = DFS.font(28, 500, T.fonts.serif);
-      ctx.fillStyle = 'rgba(34,26,12,0.72)';
-      ctx.fillText('家 书 · 万 金', x, 52 + dy);
-      // 数字
-      ctx.save();
-      ctx.translate(0, dy);
-      const wNum = HUB.monoNums(ctx, txt, x, yNum, 72, {
-        color: 'rgba(26,19,9,0.94)', weight: 700, align: 'left', tracking: 72 * 0.06
+      this.leaves = new DFS.Leaves({
+        n: 260, seed: 5813, color: '58,42,26', alpha: 0.92, size: 1.4, speed: 0.9
       });
-      ctx.font = DFS.font(26, 400, T.fonts.serif);
-      ctx.fillStyle = 'rgba(34,26,12,0.55)';
-      ctx.textAlign = 'left';
-      ctx.fillText('金', x + wNum + 14, yNum + 2);
-      ctx.restore();
-      // 细刻线
-      ctx.globalAlpha = e.alpha * 0.55;
-      ctx.strokeStyle = 'rgba(168,43,27,0.9)';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(x, 158 + dy);
-      ctx.lineTo(x + 300, 158 + dy);
-      ctx.stroke();
-      ctx.restore();
-
-      DFS.dbgBox('wanjin-counter', 104, 30, 470, 178);
-      return { value, txt };
+      this._buildLeafLandings();
     }
 
-    /* ---------------- 主绘制 ---------------- */
-    draw(ctx, L, t) {
-      DFS.dbg({ goldBalls: N_BALLS });
-      const sq = Ease.inOutCubic(clamp((L - 0.55) / 3.05));   // 挤压进度
-      const dim = clamp((L - 4.1) / 0.5) * 0.4;               // 37.2s 后压暗 40%
-
-      HUB.fiveLayerStack(ctx, t, {
-        dark: false,
-        grade: 'warm',
-        grain: 0.40,
-        vignette: 0.26,
-        vignetteMid: 0.04,
-        layer1: (c) => {
-          DFS.drawPaper(c, { zoom: 1.02 + L * 0.004 });
-          // 大片暖光，压在纸面右下，为金球留出反光环境
-          const g = c.createRadialGradient(W * 0.5, H * 0.94, 80, W * 0.5, H * 0.94, H * 0.95);
-          g.addColorStop(0, 'rgba(214,166,86,0.30)');
-          g.addColorStop(0.55, 'rgba(198,150,72,0.10)');
-          g.addColorStop(1, 'rgba(198,150,72,0)');
-          c.fillStyle = g;
-          c.fillRect(0, 0, W, H);
-          DFS.drawGradientMesh(c, t, {
-            c1: 'rgba(255,248,226,0.50)', c2: 'rgba(122,92,44,0.20)'
-          });
-        },
-        layer2: (c) => {
-          this._drawPile(c, L, t, sq);
-          this._drawLetter(c, L, sq);
-          this._drawPinch(c, L, t, sq);
-          // 金屑
-          c.save();
-          c.globalCompositeOperation = 'lighter';
-          for (const d of this.dust) {
-            const a = d.a * (0.4 + 0.6 * Math.sin(t * d.sp + d.ph) ** 2) * clamp((L - 0.5) / 1.2);
-            if (a <= 0.01) continue;
-            c.globalAlpha = a;
-            c.fillStyle = 'rgba(244,214,150,1)';
-            c.beginPath();
-            c.arc(d.x + Math.sin(t * 0.4 + d.ph) * 14, d.y - L * 6, d.rad, 0, 6.28318);
-            c.fill();
-          }
-          c.restore();
-        },
-        layer3: (c) => {
-          this._counter(c, L, t);
-          // 小朱印「万金」
-          const sp = clamp((L - 0.5) / 0.9);
-          if (sp > 0.001) {
-            HUB.inkStampSplash(c, 508, 108, sp, 23, {
-              size: 84, text: '万金', chars: 'multi', rotate: -0.05
-            });
-          }
-          this._poem(c, L, t);
-        }
-      });
-
-      if (dim > 0.001) {
-        ctx.save();
-        ctx.globalAlpha = dim;
-        ctx.fillStyle = '#0B0906';
-        ctx.fillRect(0, 0, W, H);
-        ctx.restore();
-      }
-    }
-
-    /* ---------------- 「烽火连三月 / 家书抵万金」 ---------------- */
-    _poem(ctx, L, t) {
-      const lines = [
-        { text: '烽火连三月', y: 906, start: 1.80 },
-        { text: '家书抵万金', y: 982, start: 1.98 }
-      ];
-      const inA = clamp((L - 1.72) / 0.55);
-      if (inA <= 0.002) return;
-      const exit = HUB.fastExit(L, 4.02, { duration: 0.34, rise: 10, blur: 4 });
-      const mm = HUB.idleMicroMotion(t, 2.2);
-      const size = 66, tracking = 14, weight = 500;
-      ctx.save();
-      ctx.globalAlpha *= exit.alpha;
-      // 纸色羽化衬底（黑字绝不压在暗金缝里）——椭圆内渐变，边缘不留硬边
-      ctx.save();
-      ctx.translate(CX, 946);
-      ctx.scale(1, 0.26);
-      const haze = ctx.createRadialGradient(0, 0, 40, 0, 0, 660);
-      haze.addColorStop(0, 'rgba(242,233,214,0.88)');
-      haze.addColorStop(0.55, 'rgba(240,230,208,0.50)');
-      haze.addColorStop(1, 'rgba(238,228,206,0)');
-      ctx.fillStyle = haze;
-      ctx.beginPath();
-      ctx.arc(0, 0, 660, 0, 6.28318);
-      ctx.fill();
-      ctx.restore();
-
-      for (const ln of lines) {
-        const e = HUB.multiEntrance(L, ln.start - 0.06, { duration: 0.6, rise: 30, scaleFrom: 0.94 });
-        if (e.alpha <= 0.002) continue;
-        ctx.save();
-        ctx.globalAlpha = exit.alpha * e.alpha;
-        ctx.translate(mm.dx * 0.4, e.dy + mm.dy * 0.5);
-        DFS.textIn(ctx, ln.text, {
-          x: CX, y: ln.y, size, weight, family: T.fonts.serif,
-          color: 'rgba(22,15,6,0.95)', align: 'center', tracking,
-          t: L, start: ln.start, dur: 0.58, stagger: 0.055, rise: 24, from: 0.94, blur: 4
+    /* 预解每片枯叶越过落水线的相位（与 DFS.Leaves 内部公式一致） */
+    _buildLeafLandings() {
+      const L = this.leaves;
+      const span = H * 1.5;
+      const U0 = LAND + H * 0.3;
+      const out = [];
+      for (let i = 0; i < L.n; i++) {
+        const r1 = hash(L.seed, i * 6 + 1);
+        const r2 = hash(L.seed, i * 6 + 2);
+        const r3 = hash(L.seed, i * 6 + 3);
+        const r4 = hash(L.seed, i * 6 + 4);
+        const sp = (110 + r4 * 190) * L.speed;      // px/s（叶子时间）
+        const P = span / sp;
+        let a = ((U0 - r2 * span) / sp) % P;
+        if (a < 0) a += P;
+        out.push({
+          i, P, a,
+          xb: r1 * W * 1.1 - W * 0.05,
+          dx: 18 + r3 * 40,
+          r1
         });
-        ctx.restore();
-        // 包围盒
-        ctx.font = DFS.font(size, weight, T.fonts.serif);
-        const chars = Array.from(ln.text);
-        let tw = 0;
-        for (const ch of chars) tw += ctx.measureText(ch).width;
-        tw += tracking * (chars.length - 1);
-        DFS.dbgBox(ln.text === '烽火连三月' ? 'jiashu1' : 'jiashu2',
-          CX - tw / 2, ln.y - size * 0.52, CX + tw / 2, ln.y + size * 0.52);
       }
+      this.leafLand = out;
+    }
+
+    /* ---------------- 路径工具 ---------------- */
+    _poly(c, pts) {
+      c.beginPath();
+      c.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+      c.closePath();
+    }
+    _polyAdd(c, pts) {
+      c.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+      c.closePath();
+    }
+    _edge(c, pts) {
+      c.beginPath();
+      c.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+    }
+
+    /* ---------------- 黑场（孔外） ---------------- */
+    _black(c) {
+      c.fillStyle = '#050604';
+      c.fillRect(0, 0, W, H);
+      const g = c.createRadialGradient(CX, H * 0.5, 40, CX, H * 0.5, H * 1.05);
+      g.addColorStop(0, 'rgba(14,16,13,0.55)');
+      g.addColorStop(1, 'rgba(0,0,0,0.95)');
+      c.fillStyle = g;
+      c.fillRect(0, 0, W, H);
+    }
+
+    /* ---------------- 天：峡口一线冷光 ---------------- */
+    _sky(c) {
+      const g = c.createLinearGradient(0, 0, 0, HZ + 10);
+      g.addColorStop(0, '#080A09');
+      g.addColorStop(0.40, '#141A16');
+      g.addColorStop(0.74, '#2A342D');
+      g.addColorStop(1, '#3B463C');
+      c.fillStyle = g;
+      c.fillRect(0, 0, W, HZ + 10);
+      // 峡口的强光（让黑壁立起来）
+      const gl = c.createRadialGradient(CX, HZ - 110, 30, CX, HZ - 110, 660);
+      gl.addColorStop(0, 'rgba(212,224,212,0.34)');
+      gl.addColorStop(0.42, 'rgba(190,204,190,0.12)');
+      gl.addColorStop(1, 'rgba(188,202,188,0)');
+      c.fillStyle = gl;
+      c.fillRect(0, 0, W, HZ + 10);
+      // 峡口里翻涌的云气
+      for (let i = 0; i < 6; i++) {
+        const y = HZ - 40 - i * 52;
+        const w = 460 + i * 100;
+        const a = 0.05 + i * 0.008;
+        const cxx = CX + Math.sin(i * 2.1) * 110;
+        const cg = c.createRadialGradient(cxx, y, 0, cxx, y, w);
+        cg.addColorStop(0, `rgba(214,222,210,${a})`);
+        cg.addColorStop(1, 'rgba(214,222,210,0)');
+        c.fillStyle = cg;
+        c.save();
+        c.translate(cxx, y);
+        c.scale(1, 0.20);
+        c.beginPath();
+        c.arc(0, 0, w, 0, 6.28318);
+        c.fill();
+        c.restore();
+      }
+    }
+
+    /* ---------------- 远山（只在江道尽头露头） ---------------- */
+    _farWalls(c) {
+      // 更远的一层：淡影
+      c.save();
+      c.globalAlpha = 0.55;
+      this._poly(c, FAR_RIDGE);
+      const g0 = c.createLinearGradient(0, 420, 0, 540);
+      g0.addColorStop(0, '#2A362E');
+      g0.addColorStop(1, '#39473C');
+      c.fillStyle = g0;
+      c.fill();
+      c.restore();
+
+      // 近一层：略深，压在水线上
+      const ridge2 = FAR_RIDGE.map(([x, y]) => [x, y + 46]);
+      this._poly(c, ridge2);
+      const g = c.createLinearGradient(0, 470, 0, HZ);
+      g.addColorStop(0, '#131A15');
+      g.addColorStop(0.55, '#1B241D');
+      g.addColorStop(1, '#28332B');
+      c.fillStyle = g;
+      c.fill();
+      // 山脚的雾（软边，无硬框）
+      c.save();
+      c.translate(CX, HZ - 6);
+      c.scale(1, 0.17);
+      const mg = c.createRadialGradient(0, 0, 0, 0, 0, 520);
+      mg.addColorStop(0, 'rgba(178,194,178,0.30)');
+      mg.addColorStop(1, 'rgba(178,194,178,0)');
+      c.fillStyle = mg;
+      c.beginPath();
+      c.arc(0, 0, 520, 0, 6.28318);
+      c.fill();
+      c.restore();
+    }
+
+    /* ---------------- 江面 ---------------- */
+    _water(c, tw) {
+      HUB.waterMoonShader(c, W, H, tw, {
+        horizon: HZ, moonX: CX, moonY: 300, moon: false,
+        base: '11,14,13', top: '20,25,21', glint: '222,230,216',
+        rows: 140, seed: 5113, moonGain: 0.85, amp: 1.9
+      });
+      this._current(c, tw);
+      this._foam(c, tw);
+      this._swell(c, tw);
+      this._churn(c, tw);
+      // 近岸的暗（把江心留亮，水面向下压深）
+      const dk = c.createLinearGradient(0, H - 260, 0, H);
+      dk.addColorStop(0, 'rgba(3,4,4,0)');
+      dk.addColorStop(1, 'rgba(3,4,4,0.42)');
+      c.fillStyle = dk;
+      c.fillRect(0, H - 260, W, 260);
+    }
+
+    /* 江流的收束线：从江心消失在画面底部（滚滚来的透视） */
+    _current(c, tw) {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      c.lineCap = 'round';
+      for (let i = 0; i < 44; i++) {
+        const h1 = hash(6107, i * 5 + 1);
+        const h2 = hash(6107, i * 5 + 2);
+        const h3 = hash(6107, i * 5 + 3);
+        const bx = CX + (h1 * 2 - 1) * 1250;
+        const ph = (tw * (0.09 + h2 * 0.15) + h3) % 1;
+        for (let k = 0; k < 3; k++) {
+          const u0 = (ph + k / 3) % 1;
+          if (u0 < 0.06) continue;
+          const u1 = Math.min(1, u0 + 0.045 + h2 * 0.07);
+          const e0 = Math.pow(u0, 1.75), e1 = Math.pow(u1, 1.75);
+          const x0 = lerp(CX, bx, e0), y0 = HZ + (H + 60 - HZ) * e0;
+          const x1 = lerp(CX, bx, e1), y1 = HZ + (H + 60 - HZ) * e1;
+          const a = (0.10 + 0.16 * h2) * (1 - u0 * 0.35) * (0.35 + 0.65 * Math.abs(bx - CX) / 1250);
+          c.globalAlpha = a;
+          c.strokeStyle = 'rgba(228,236,222,1)';
+          c.lineWidth = 0.8 + e0 * 3.2;
+          c.beginPath();
+          c.moveTo(x0, y0);
+          c.lineTo(x1, y1);
+          c.stroke();
+        }
+      }
+      c.restore();
+    }
+
+    /* 浮沫白线：顺着江流向右疾走 */
+    _foam(c, tw) {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      c.lineCap = 'round';
+      for (let i = 0; i < 92; i++) {
+        const k = hash(7101, i * 5 + 1);
+        const y = HZ + 10 + Math.pow(k, 1.55) * (H - HZ - 10);
+        const dep = (y - HZ) / (H - HZ);
+        const sp = 26 + dep * 230;
+        const x0 = hash(7101, i * 5 + 2) * (W + 520);
+        const x = (x0 + tw * sp) % (W + 520) - 260;
+        const len = (26 + dep * 170) * (0.5 + hash(7101, i * 5 + 3));
+        const a = (0.09 + 0.34 * hash(7101, i * 5 + 4)) * (0.35 + dep * 0.65);
+        const wob = Math.sin(tw * 2.3 + i) * (1 + dep * 4);
+        c.globalAlpha = 1;
+        c.strokeStyle = `rgba(230,236,224,${a})`;
+        c.lineWidth = 0.9 + dep * 3.4;
+        c.beginPath();
+        c.moveTo(x, y + wob);
+        c.lineTo(x + len, y + wob + Math.sin(tw * 1.6 + i * 0.7) * 1.8);
+        c.stroke();
+        if (i % 3 === 0) {
+          c.globalAlpha = 0.7;
+          c.fillStyle = `rgba(240,244,236,${a * 0.9})`;
+          c.beginPath();
+          c.arc(x + len + 6, y + wob, 0.9 + dep * 2.4, 0, 6.28318);
+          c.fill();
+        }
+      }
+      c.restore();
+    }
+
+    /* 近景的碎浪（江水的"怒"） */
+    _swell(c, tw) {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      c.lineCap = 'round';
+      for (let i = 0; i < 5; i++) {
+        const y0 = H * (0.76 + i * 0.055);
+        const amp = 9 + i * 5;
+        const ph = tw * (1.5 - i * 0.16) + i * 2.1;
+        const n = 34;
+        for (let j = 0; j < n; j++) {
+          const h1 = hash(9311, i * 61 + j * 3 + 1);
+          const h2 = hash(9311, i * 61 + j * 3 + 2);
+          const x = ((j + h1 * 0.8) / n) * (W + 300) - 150 + ((tw * (70 + i * 26)) % 70);
+          const yy = y0 + Math.sin(x * 0.0072 + ph) * amp + Math.sin(x * 0.019 - ph * 1.3) * amp * 0.4;
+          const len = (16 + h2 * 54) * (0.6 + i * 0.14);
+          const a = (0.10 + 0.26 * h2) * (0.7 + i * 0.1);
+          c.globalAlpha = a;
+          c.strokeStyle = 'rgba(234,240,230,1)';
+          c.lineWidth = 1.1 + i * 0.7;
+          c.beginPath();
+          c.moveTo(x, yy);
+          c.lineTo(x + len, yy + Math.sin(x * 0.0072 + ph) * 2.2);
+          c.stroke();
+        }
+      }
+      c.restore();
+    }
+
+    /* 崖脚的撞水白花 + 水雾 */
+    _churn(c, tw) {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      for (let side = 0; side < 2; side++) {
+        const bx = side ? 500 : 1420;
+        const dir = side ? 1 : -1;
+        for (let i = 0; i < 26; i++) {
+          const u = hash(8207, i * 4 + side * 97 + 1);
+          const y = HZ + 30 + u * (H - HZ - 60);
+          const pulse = 0.5 + 0.5 * Math.sin(tw * (1.4 + u * 2.2) + i * 1.7 + side);
+          const w = (18 + u * 62) * (0.5 + pulse * 0.95);
+          const x = bx + dir * (10 + u * 110 + Math.sin(tw * 1.8 + i) * 14);
+          const a = 0.10 + 0.26 * pulse;
+          const g = c.createRadialGradient(x, y, 0, x, y, w);
+          g.addColorStop(0, `rgba(238,244,234,${a})`);
+          g.addColorStop(1, 'rgba(238,244,234,0)');
+          c.fillStyle = g;
+          c.save();
+          c.translate(x, y);
+          c.scale(1, 0.30);
+          c.beginPath();
+          c.arc(0, 0, w, 0, 6.28318);
+          c.fill();
+          c.restore();
+        }
+        // 贴水的水雾
+        const mg = c.createLinearGradient(0, HZ - 30, 0, HZ + 150);
+        mg.addColorStop(0, 'rgba(206,216,204,0)');
+        mg.addColorStop(0.5, 'rgba(206,216,204,0.13)');
+        mg.addColorStop(1, 'rgba(206,216,204,0)');
+        c.fillStyle = mg;
+        c.fillRect(side ? 1400 : 300, HZ - 30, 220, 180);
+      }
+      c.restore();
+    }
+
+    /* ---------------- 近壁（黑如玄铁） ---------------- */
+    _nearWalls(c, tw) {
+      const pairs = [[NEAR_L, EDGE_L, 6101], [NEAR_R, EDGE_R, 6103]];
+      for (const [pts, edge, seed] of pairs) {
+        this._poly(c, pts);
+        const g = c.createLinearGradient(0, 60, 0, H);
+        g.addColorStop(0, '#0A0D10');
+        g.addColorStop(0.22, '#06090B');
+        g.addColorStop(0.62, '#030507');
+        g.addColorStop(1, '#010102');
+        c.fillStyle = g;
+        c.fill();
+
+        c.save();
+        this._poly(c, pts);
+        c.clip();
+        const r = DFS.rng(seed);
+        // 折面（玄铁的暗反光）
+        for (let i = 0; i < 12; i++) {
+          const x = -60 + r() * 840;
+          const y = 60 + r() * 340;
+          const w2 = 90 + r() * 320, h2 = 170 + r() * 560;
+          c.globalAlpha = 0.10 + r() * 0.18;
+          c.fillStyle = r() > 0.5 ? 'rgba(32,42,48,1)' : 'rgba(6,8,10,1)';
+          c.beginPath();
+          c.moveTo(x, y);
+          c.lineTo(x + w2, y + (r() - 0.5) * 90);
+          c.lineTo(x + w2 * 0.7, y + h2);
+          c.lineTo(x - w2 * 0.15, y + h2 * 0.8);
+          c.closePath();
+          c.fill();
+        }
+        // 竖向岩理
+        for (let i = 0; i < 58; i++) {
+          const x = -60 + r() * 880;
+          const y = 60 + r() * 1000;
+          const h2 = 60 + r() * 320;
+          c.globalAlpha = 0.04 + r() * 0.10;
+          c.strokeStyle = r() > 0.42 ? 'rgba(92,110,106,1)' : 'rgba(4,6,8,1)';
+          c.lineWidth = 1.2 + r() * 7;
+          c.beginPath();
+          c.moveTo(x, y);
+          c.lineTo(x + (r() - 0.5) * 30, y + h2);
+          c.stroke();
+        }
+        // 横向层理
+        for (let i = 0; i < 16; i++) {
+          const y = 120 + r() * 940;
+          c.globalAlpha = 0.03 + r() * 0.06;
+          c.strokeStyle = 'rgba(124,144,138,1)';
+          c.lineWidth = 1 + r() * 2.6;
+          c.beginPath();
+          c.moveTo(-60, y);
+          c.lineTo(780, y + (r() - 0.5) * 30);
+          c.stroke();
+        }
+        // 石裂
+        for (let i = 0; i < 8; i++) {
+          let x = -60 + r() * 760, y = 80 + r() * 900;
+          c.globalAlpha = 0.03 + r() * 0.05;
+          c.strokeStyle = 'rgba(140,160,152,1)';
+          c.lineWidth = 0.9 + r() * 1.6;
+          c.beginPath();
+          c.moveTo(x, y);
+          for (let k = 0; k < 5; k++) {
+            x += (r() - 0.5) * 46;
+            y += 24 + r() * 60;
+            c.lineTo(x, y);
+          }
+          c.stroke();
+        }
+        c.restore();
+
+        // 内缘冷边光（把黑壁从黑天里分出来）
+        c.save();
+        c.globalCompositeOperation = 'lighter';
+        c.lineJoin = 'round';
+        c.globalAlpha = 0.55;
+        c.strokeStyle = 'rgba(150,170,164,0.26)';
+        c.lineWidth = 2.4;
+        this._edge(c, edge);
+        c.stroke();
+        c.globalAlpha = 0.20 * (0.85 + 0.15 * Math.sin(tw * 0.7));
+        c.strokeStyle = 'rgba(196,212,204,0.6)';
+        c.lineWidth = 7;
+        this._edge(c, edge);
+        c.stroke();
+        c.restore();
+      }
+      // 崖脚贴水的一层黑雾
+      const g = c.createLinearGradient(0, H - 190, 0, H);
+      g.addColorStop(0, 'rgba(2,3,3,0)');
+      g.addColorStop(1, 'rgba(2,3,3,0.58)');
+      c.fillStyle = g;
+      c.fillRect(0, H - 190, W, 190);
+    }
+
+    /* ---------------- 天光：峡口的水汽光（无硬边） ---------------- */
+    _light(c, tw) {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 3; i++) {
+        const cx2 = CX + (i - 1) * 160 + Math.sin(tw * 0.20 + i * 1.6) * 34;
+        const cy2 = 300 + i * 60;
+        const rx = 150 + i * 60;
+        c.save();
+        c.translate(cx2, cy2);
+        c.scale(1, 2.9);
+        const g = c.createRadialGradient(0, 0, 0, 0, 0, rx);
+        g.addColorStop(0, `rgba(216,228,214,${0.085 - i * 0.018})`);
+        g.addColorStop(0.55, `rgba(210,222,208,${0.030 - i * 0.006})`);
+        g.addColorStop(1, 'rgba(210,222,208,0)');
+        c.fillStyle = g;
+        c.beginPath();
+        c.arc(0, 0, rx, 0, 6.28318);
+        c.fill();
+        c.restore();
+      }
+      // 江道尽头的一团亮水汽（长江在此转弯）
+      c.save();
+      c.translate(CX, HZ + 6);
+      c.scale(1, 0.20);
+      const gg = c.createRadialGradient(0, 0, 0, 0, 0, 520);
+      gg.addColorStop(0, 'rgba(214,226,212,0.20)');
+      gg.addColorStop(0.5, 'rgba(206,218,204,0.07)');
+      gg.addColorStop(1, 'rgba(206,218,204,0)');
+      c.fillStyle = gg;
+      c.beginPath();
+      c.arc(0, 0, 520, 0, 6.28318);
+      c.fill();
+      c.restore();
+      c.restore();
+    }
+
+    /* ---------------- 落木 + 触水白环 ---------------- */
+    _leaves(c, L, tw) {
+      const f = clamp((L - T_LEAF) / 0.75);
+      if (f <= 0.01) return;
+      const a = 0.92 * f * (1 - 0.34 * clamp((L - T_HOLD) / 0.9));
+      const lt = L * LEAF_T;
+
+      c.save();
+      c.beginPath();
+      c.rect(0, -20, W, LAND + 18);
+      c.clip();
+      this.leaves.alpha = a;
+      this.leaves.draw(c, lt, {});
+      c.restore();
+
+      // 触水：3px 小白环
+      c.save();
+      c.lineCap = 'round';
+      for (const d of this.leafLand) {
+        const k = Math.floor((lt - d.a) / d.P);
+        const tc = d.a + k * d.P;
+        const age = lt - tc;
+        if (age < 0 || age > RING_LIFE) continue;
+        const x = d.xb + tc * d.dx + Math.sin(tc * 1.1 + d.i) * 40 * (0.4 + d.r1);
+        if (x < 516 || x > 1404) continue;
+        const u = age / RING_LIFE;
+        const rr = 1.2 + u * 2.4;
+        const al = 0.55 * (1 - u) * a;
+        if (al <= 0.01) continue;
+        const y = LAND + Math.sin(x * 0.012) * 2;
+        c.strokeStyle = `rgba(240,246,238,${al})`;
+        c.lineWidth = 1;
+        c.beginPath();
+        c.ellipse(x, y, rr, rr * 0.46, 0, 0, 6.28318);
+        c.stroke();
+        if (u < 0.18) {
+          c.fillStyle = `rgba(248,252,246,${0.5 * (1 - u / 0.18)})`;
+          c.beginPath();
+          c.arc(x, y, 1.3, 0, 6.28318);
+          c.fill();
+        }
+      }
+      c.restore();
+    }
+
+    /* ---------------- 孤舟 + 船头小灯 ---------------- */
+    _boat(c, tw) {
+      const inP = clamp((tw - 0.55) / 1.3);
+      if (inP <= 0.01) return;
+      const a = Ease.outCubic(inP);
+      const bx = lerp(B_X0, B_X1, Ease.inOutCubic(clamp(tw / 9.5)));
+      const by = B_Y + Math.sin(tw * 1.15) * 4.2 + Math.sin(tw * 2.4) * 1.6;
+
+      c.save();
+      c.globalAlpha = a;
+      const dg = c.createRadialGradient(bx, by + 6, 4, bx, by + 6, 150);
+      dg.addColorStop(0, 'rgba(3,4,4,0.60)');
+      dg.addColorStop(1, 'rgba(3,4,4,0)');
+      c.fillStyle = dg;
+      c.beginPath();
+      c.ellipse(bx, by + 10, 152, 30, 0, 0, 6.28318);
+      c.fill();
+
+      DFS.boat(c, bx - 2.6, by - 2.2, B_S, {
+        color: '176,190,180', alpha: 0.34, t: tw, figure: true, figureColor: '170,184,174'
+      });
+      DFS.boat(c, bx, by, B_S, {
+        color: '5,6,7', alpha: 0.98, t: tw, figure: true, figureColor: '4,5,6'
+      });
+
+      c.globalCompositeOperation = 'source-over';
+      c.strokeStyle = 'rgba(220,228,216,1)';
+      for (let k = 0; k < 4; k++) {
+        const d = 44 + k * 26;
+        const yy = by + 13 + Math.sin(tw * 1.5 + k) * 2.4;
+        c.globalAlpha = a * (0.24 - k * 0.045);
+        c.lineWidth = 1.1;
+        c.beginPath();
+        c.moveTo(bx - d, yy);
+        c.lineTo(bx - d - 30 - k * 12, yy + 1.8);
+        c.stroke();
+      }
+
+      // 船头一盏小灯（暖黄 3px + 12px 光晕），随浪起伏而位置稳定
+      const bob = Math.sin(tw * 1.5) * 1.6;
+      const lx = bx + 70 * B_S;
+      const ly = by + (-8 + bob) * B_S;
+      const flick = 0.84 + 0.16 * Math.sin(tw * 5.2) * Math.sin(tw * 1.7 + 1.1);
+      c.globalAlpha = a * flick;
+      c.globalCompositeOperation = 'lighter';
+      const hg = c.createRadialGradient(lx, ly, 0, lx, ly, 12);
+      hg.addColorStop(0, 'rgba(255,214,150,0.62)');
+      hg.addColorStop(0.35, 'rgba(255,196,120,0.26)');
+      hg.addColorStop(1, 'rgba(255,190,110,0)');
+      c.fillStyle = hg;
+      c.beginPath();
+      c.arc(lx, ly, 12, 0, 6.28318);
+      c.fill();
+      c.fillStyle = 'rgba(255,236,196,0.95)';
+      c.beginPath();
+      c.arc(lx, ly, 1.7, 0, 6.28318);
+      c.fill();
+      c.globalAlpha = a * 0.34 * flick;
+      c.strokeStyle = 'rgba(255,206,140,1)';
+      c.lineWidth = 1.2;
+      for (let k = 0; k < 5; k++) {
+        const yy = by + 12 + k * 7 + Math.sin(tw * 2 + k) * 1.4;
+        const w = 8 - k * 1.2;
+        c.beginPath();
+        c.moveTo(lx - w, yy);
+        c.lineTo(lx + w, yy);
+        c.stroke();
+      }
+      c.restore();
+    }
+
+    /* ---------------- 竖排大字（逐字墨渗入场） ---------------- */
+    _colText(c, text, o) {
+      const chars = Array.from(text);
+      const size = o.size;
+      const step = size * (o.gap ?? 1.10);
+      const mm = HUB.idleMicroMotion(o.t, o.x * 0.013);
+      let any = false;
+      for (let i = 0; i < chars.length; i++) {
+        const e = HUB.multiEntrance(o.L, o.start + i * 0.055,
+          { duration: 0.80, rise: 26, scaleFrom: 0.98 });
+        if (e.alpha <= 0.008) continue;
+        any = true;
+        V3.inkText(c, chars[i], {
+          x: o.x + mm.dx * 0.30,
+          y: o.top + i * step + e.dy + mm.dy * 0.35,
+          size, weight: o.weight ?? 900, family: o.family || T.fonts.heavy,
+          color: o.color, alpha: e.alpha * (o.alpha ?? 1), seed: (o.seed ?? 1) + i * 3
+        });
+      }
+      if (any) {
+        DFS.dbgBox(o.id,
+          o.x - size * 0.62, o.top - size * 0.62,
+          o.x + size * 0.62, o.top + (chars.length - 1) * step + size * 0.62);
+      }
+    }
+
+    /* ---------------- 下方居中一句 ---------------- */
+    _noteText(c, text, o) {
+      const e = HUB.multiEntrance(o.L, o.start, { duration: 0.85, rise: 18, scaleFrom: 0.99 });
+      if (e.alpha <= 0.008) return;
+      const chars = Array.from(text);
+      const size = o.size;
+      const tracking = 3;
+      const m = meas();
+      m.font = DFS.font(size, o.weight ?? 500, T.fonts.serif);
+      let total = tracking * (chars.length - 1);
+      for (const ch of chars) total += m.measureText(ch).width;
+      let cursor = CX - total / 2;
+      const mm = HUB.idleMicroMotion(o.t, 4.4);
+      for (let i = 0; i < chars.length; i++) {
+        const w = m.measureText(chars[i]).width;
+        const ee = HUB.multiEntrance(o.L, o.start + i * 0.018, { duration: 0.7, rise: 12 });
+        if (ee.alpha > 0.008) {
+          V3.inkText(c, chars[i], {
+            x: cursor + w / 2,
+            y: o.y + e.dy * 0.6 + mm.dy * 0.3,
+            size, weight: o.weight ?? 500, family: T.fonts.serif,
+            color: o.color, alpha: ee.alpha * (o.alpha ?? 1), seed: (o.seed ?? 5) + i
+          });
+        }
+        cursor += w + tracking;
+      }
+      DFS.dbgBox(o.id, CX - total / 2 - 6, o.y - size * 0.7, CX + total / 2 + 6, o.y + size * 0.7);
+    }
+
+    /* ---------------- 排版层 ---------------- */
+    _text(c, L, t) {
+      const st = DFS.STORY.texts;
+      const e0 = HUB.multiEntrance(L, 9.62, { duration: 0.8, rise: 0 });
+      if (e0.alpha > 0.01) {
+        c.save();
+        c.translate(CX, 930);
+        c.scale(1, 0.22);
+        const vg = c.createRadialGradient(0, 0, 30, 0, 0, 430);
+        vg.addColorStop(0, `rgba(3,4,4,${0.60 * e0.alpha})`);
+        vg.addColorStop(1, 'rgba(3,4,4,0)');
+        c.fillStyle = vg;
+        c.beginPath();
+        c.arc(0, 0, 430, 0, 6.28318);
+        c.fill();
+        c.restore();
+      }
+      this._colText(c, st.s05_a, {
+        id: 's05_a', x: 1700, top: 198, size: 78, gap: 1.10, start: 7.90, L, t, color: INK, seed: 21
+      });
+      this._colText(c, st.s05_b, {
+        id: 's05_b', x: 1600, top: 214, size: 78, gap: 1.10, start: 9.40, L, t, color: INK, seed: 37
+      });
+      this._noteText(c, st.s05_note, {
+        id: 's05_note', y: 930, size: 34, start: 9.62, L, t,
+        color: 'rgba(244,239,230,0.86)', weight: 500, seed: 11
+      });
+    }
+
+    /* ---------------- 峡江全幅 ---------------- */
+    _gorge(ctx, L, t) {
+      const tw = L <= T_HOLD ? L : T_HOLD + (L - T_HOLD) * 0.35;
+      const zin = 1 + 0.085 * (1 - Ease.outCubic(clamp(L / 2.4)));
+      ctx.save();
+      ctx.translate(CX, H * 0.56);
+      ctx.scale(zin, zin);
+      ctx.translate(-CX, -H * 0.56);
+
+      V3.eight(ctx, t, {
+        l1: (c) => this._sky(c),
+        grade: 'cold', grain: 0.50, vignette: 0.36, vignetteMid: 0.05,
+        dustAlpha: 0.16, dustOpts: { count: 80, color: '200,208,196', seed: 6141 },
+        l2: (c) => {
+          this._farWalls(c);
+          this._water(c, tw);
+          this._light(c, tw);
+          this._nearWalls(c, tw);
+        },
+        l4: (c) => {
+          this._leaves(c, L, tw);
+          this._boat(c, tw);
+        },
+        l5: (c) => this._text(c, L, t)
+      });
       ctx.restore();
     }
 
-    hudDark() { return false; }
+    draw(ctx, L, t) {
+      DFS.dbg({ leafParticles: 260 });
+      const portal = clamp(L / 1.50);
+      if (portal < 0.999) {
+        // cinematicPortalWipe 内部是 easeInExpo，这里反解，让圆孔匀速张开
+        const want = Ease.inOutCubic(portal);
+        const fed = clamp(1 + Math.log2(Math.max(1e-7, want)) / 10, 0, 1);
+        HUB.cinematicPortalWipe(ctx, CX, H * 0.5, fed,
+          (c) => this._black(c),
+          (c) => this._gorge(c, L, t),
+          { edgeColor: 'rgba(214,222,208,0.55)' });
+      } else {
+        this._gorge(ctx, L, t);
+      }
+    }
+
+    hudDark() { return true; }
   };
 })(window.DFS);

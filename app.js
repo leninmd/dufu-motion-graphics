@@ -119,7 +119,8 @@
   async function boot() {
     try {
       await document.fonts.ready;
-      const res = await fetch('storyboard.json', { cache: 'no-store' });
+      const STORY_URL = window.STORY_URL || 'storyboard.v3.json';
+      const res = await fetch(STORY_URL, { cache: 'no-store' });
       STORY = await res.json();
       DFS.STORY = STORY;
       window.DURATION = STORY.duration;

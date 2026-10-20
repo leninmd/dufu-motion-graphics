@@ -1,141 +1,181 @@
 /* =========================================================================
-   s08_cards.js — 65.9–71.1s 一手烂牌 → 诗史（V2 居中黄金构图版）
-   可 → 四张厄运牌（落第/陷贼/弃官/漂泊）180° 翻面为名篇 → 打成了 诗史
+   s08_cards.js — 98.1–110.3s 丰碑 · 光焰万丈
+   劫难废墟下裂出地火，四座青铜重简拔地而起；
+   定论：李杜文章在，光焰万丈长。（韩愈）
    ========================================================================= */
 (function (DFS) {
   'use strict';
   const { W, H, clamp, lerp, Ease } = DFS;
+  const V3 = DFS.V3;
   const HUB = DFS.HUB;
   const T = DFS.THEME;
 
-  DFS.sceneRegistry['s08'] = class Scene08V2 {
-    constructor() {
-      this.cards = [
-        { back: '落第', front: '春望', sub: '七五七' },
-        { back: '陷贼', front: '石壕吏', sub: '七五九' },
-        { back: '弃官', front: '茅屋', sub: '七六一' },
-        { back: '漂泊', front: '登高', sub: '七六七' }
-      ];
-    }
+  DFS.sceneRegistry['s08'] = class Scene08V3 {
+    draw(ctx, L, t, ch) {
+      const st = DFS.STORY.texts;
+      const tForge = clamp((L - 1.4) / 2.6);      // 地火
+      const tSlips = clamp((L - 2.9) / 2.4);      // 铜简升起
+      const pMain = HUB.multiEntrance(L, 5.4, { duration: 1.0, rise: 24, blur: 8 });
+      const pNote = HUB.multiEntrance(L, 6.6, { duration: 0.9, rise: 16, blur: 5 });
+      const tOut = clamp((L - 11.4) / 0.8);
 
-    draw(ctx, L, t) {
-      const tPaper = clamp((L - 0.35) / 0.75);
-      const tKill = clamp((L - 0.62) / 0.35);        // 「可」退场
-      const pTop = HUB.multiEntrance(L, 0.80, { duration: 0.65, rise: 26, blur: 7 });
-      const tCards = clamp((L - 0.95) / 1.0);
-      const tFlip = clamp((L - 1.75) / 1.35);
-      const pBottom = HUB.multiEntrance(L, 3.05, { duration: 0.62, rise: 30, blur: 8 });
-
-      /* ---------- 底：黑 → 纸 ---------- */
-      ctx.fillStyle = '#080806';
-      ctx.fillRect(0, 0, W, H);
-      if (tPaper > 0.001) {
-        ctx.save();
-        ctx.globalAlpha = Ease.inOutCubic(tPaper);
-        DFS.drawPaper(ctx, { zoom: 1.03 });
-        DFS.drawGradientMesh(ctx, t, { c1: 'rgba(255,250,232,0.5)', c2: 'rgba(120,104,78,0.14)' });
-        ctx.restore();
-      }
-
-      /* ---------- 「可」 ---------- */
-      if (L < 1.05) {
-        const p = Ease.snap(clamp(L / 0.55));
-        const out = tKill;
-        if (p > 0.01 && out < 1) {
-          ctx.save();
-          ctx.globalAlpha = (1 - out);
-          ctx.translate(W * 0.5, H * 0.47);
-          ctx.scale(1 + (1 - p) * 0.28, 1 + (1 - p) * 0.28);
-          DFS.grainText(ctx, '可', {
-            x: 0, y: 0, size: 320, weight: 900, family: T.fonts.heavy,
-            color: 'rgba(244,240,226,0.97)', rough: 0.6, seed: 9
-          });
-          ctx.restore();
-          DFS.dbgBox('ke', W * 0.5 - 170, H * 0.47 - 170, W * 0.5 + 170, H * 0.47 + 170);
-        }
-      }
-
-      /* ---------- 上半句（居中） ---------- */
-      if (pTop.alpha > 0.01) {
-        ctx.save();
-        ctx.globalAlpha = pTop.alpha;
-        HUB.title(ctx, '杜甫把一手烂牌，', {
-          x: W / 2, y: 165 - pTop.dy, size: 60, weight: 700, family: T.fonts.heavy,
-          color: 'rgba(24,20,14,0.94)', align: 'center', tracking: 4
-        });
-        DFS.dbgBox('cardline-top', W / 2 - 330, 120, W / 2 + 330, 210);
-        ctx.restore();
-      }
-
-      /* ---------- 四张牌 ---------- */
-      const cw = 210, chh = 372, gap = 62;
-      const totalW = this.cards.length * cw + (this.cards.length - 1) * gap;
-      const baseX = W * 0.5 - totalW / 2 + cw / 2;
-      const baseY = 520;
-
-      if (tCards > 0.001) {
-        this.cards.forEach((c, i) => {
-          const st = 0.95 + HUB.stagger(i, { frames: 6 });
-          const p = HUB.springPhysics(clamp((L - st) / 0.7), { stiffness: 200, damping: 16 });
-          if (p <= 0.001) return;
-          const x = baseX + i * (cw + gap);
-          const y = baseY + (1 - p) * -240;
-          const flipP = Ease.inOutCubic(clamp((tFlip - HUB.stagger(i, { frames: 6 })) / 0.55));
-          const rotY = flipP * Math.PI;
-          const front = flipP > 0.5;
-          // 牌下的投影
-          ctx.save();
-          ctx.globalAlpha = clamp(p) * 0.18;
-          ctx.fillStyle = '#3A2E1C';
-          ctx.beginPath();
-          ctx.ellipse(x, baseY + chh / 2 + 26, cw * 0.46, 14, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-
-          DFS.card(ctx, {
-            x, y, w: cw, h: chh, rotY, front,
-            label: front ? c.front : c.back,
-            sub: front ? c.sub : '',
-            textSize: front ? 48 : 54,
-            seed: i + 2,
-            alpha: clamp(p)
-          });
-
-          // 翻面瞬间的高光扫过
-          const sweep = Math.max(0, 1 - Math.abs(flipP - 0.5) / 0.16);
-          if (sweep > 0.01) {
-            ctx.save();
-            ctx.globalAlpha = sweep * 0.55;
-            ctx.fillStyle = 'rgba(255,248,226,0.9)';
-            ctx.fillRect(x - cw / 2, y - chh / 2, cw, chh);
-            ctx.restore();
+      V3.eight(ctx, t, {
+        void: true,
+        voidInner: '#191510', voidMid: '#0B0906', voidOuter: '#040302',
+        grade: 'warm', grain: 0.48, vignette: 0.32, dustAlpha: 0.55,
+        l2: (c) => {
+          // 废墟残影（渐隐）
+          c.save();
+          c.globalAlpha = 0.22 * (1 - tSlips * 0.6);
+          for (let i = 0; i < 5; i++) {
+            const x = W * (0.2 + i * 0.15);
+            const h = 120 + (i % 3) * 60;
+            c.fillStyle = 'rgba(26,24,20,0.9)';
+            c.beginPath();
+            c.moveTo(x - 90, H);
+            c.lineTo(x - 70, H - h);
+            c.lineTo(x + 40, H - h - 30 * (i % 2));
+            c.lineTo(x + 95, H);
+            c.closePath();
+            c.fill();
           }
-        });
-        DFS.dbgBox('cardline-cards', baseX - cw / 2, baseY - chh / 2, baseX + totalW - cw / 2, baseY + chh / 2);
-      }
+          c.restore();
+        },
+        l3: (c) => {
+          // 地火辉光
+          if (tForge > 0.01) {
+            const g = c.createRadialGradient(W * 0.5, H * 1.02, 20, W * 0.5, H * 0.98, H * 0.95);
+            g.addColorStop(0, `rgba(255,176,62,${0.30 * tForge})`);
+            g.addColorStop(0.4, `rgba(220,110,30,${0.14 * tForge})`);
+            g.addColorStop(1, 'rgba(220,110,30,0)');
+            c.fillStyle = g;
+            c.fillRect(0, 0, W, H);
+          }
+        },
+        l4: (c) => {
+          // 地火裂纹（从底部中心向上分叉）
+          if (tForge > 0.01) {
+            const r = DFS.rng(8123);
+            c.save();
+            c.globalCompositeOperation = 'lighter';
+            const N = 9;
+            for (let k = 0; k < N; k++) {
+              let x = W * 0.5 + (r() - 0.5) * 80;
+              let y = H + 10;
+              const ang0 = -Math.PI / 2 + (r() - 0.5) * 1.5;
+              let ang = ang0;
+              const segs = Math.round((18 + r() * 10) * Ease.outCubic(tForge));
+              c.beginPath();
+              c.moveTo(x, y);
+              for (let i = 0; i < segs; i++) {
+                ang += (r() - 0.5) * 0.7;
+                const len = 18 + r() * 30;
+                x += Math.cos(ang) * len;
+                y += Math.sin(ang) * len;
+                c.lineTo(x, y);
+              }
+              const a = clamp(tForge * 1.4 - k * 0.05) * (1 - clamp((L - 6.5) / 2.2) * 0.55);
+              c.strokeStyle = `rgba(255,${170 + k * 6},${70 + k * 4},${0.55 * a})`;
+              c.lineWidth = 1.6 + (k % 3) * 0.8;
+              c.stroke();
+              c.strokeStyle = `rgba(255,238,190,${0.30 * a})`;
+              c.lineWidth = 0.7;
+              c.stroke();
+            }
+            c.restore();
+          }
 
-      /* ---------- 落款：打成了 诗史 ---------- */
-      if (pBottom.alpha > 0.01) {
+          // 四座青铜重简
+          if (tSlips > 0.001) {
+            const titles = st.s08_cards;
+            const n = titles.length;
+            const gap = 210;
+            const baseX = W * 0.5 - (gap * (n - 1)) / 2;
+            for (let i = 0; i < n; i++) {
+              const p = Ease.outExpo(clamp((tSlips - i * 0.11) / 0.7));
+              if (p <= 0.001) continue;
+              const x = baseX + i * gap;
+              const y = lerp(H + 340, H * 0.585, p);
+              const w = 118, h = 470;
+              c.save();
+              c.translate(x, y);
+              // 简身（青铜渐变）
+              const g = c.createLinearGradient(-w / 2, 0, w / 2, 0);
+              g.addColorStop(0, 'rgba(58,44,26,1)');
+              g.addColorStop(0.28, 'rgba(122,94,48,1)');
+              g.addColorStop(0.5, 'rgba(196,158,86,1)');
+              g.addColorStop(0.72, 'rgba(122,94,48,1)');
+              g.addColorStop(1, 'rgba(46,34,20,1)');
+              c.fillStyle = g;
+              c.fillRect(-w / 2, -h / 2, w, h);
+              // 金边
+              c.strokeStyle = `rgba(255,222,150,${0.55 * p})`;
+              c.lineWidth = 1.6;
+              c.strokeRect(-w / 2 + 3, -h / 2 + 3, w - 6, h - 6);
+              // 编绳
+              c.strokeStyle = 'rgba(40,30,18,0.85)';
+              c.lineWidth = 3;
+              for (let k = 1; k <= 3; k++) {
+                c.beginPath();
+                c.moveTo(-w / 2, -h / 2 + (h / 4) * k);
+                c.lineTo(w / 2, -h / 2 + (h / 4) * k);
+                c.stroke();
+              }
+              // 题名（竖排）
+              const chars = Array.from(titles[i]);
+              const fs = 46;
+              c.textAlign = 'center';
+              c.textBaseline = 'middle';
+              c.font = DFS.font(fs, 700, T.fonts.heavy);
+              chars.forEach((ch2, k) => {
+                const yy = -h / 2 + 90 + k * (fs * 1.32);
+                c.fillStyle = 'rgba(30,20,10,0.55)';
+                c.fillText(ch2, 1.5, yy + 1.5);
+                c.fillStyle = 'rgba(255,240,208,0.95)';
+                c.fillText(ch2, 0, yy);
+              });
+              c.restore();
+            }
+          }
+        },
+        l5: (c) => {
+          if (pMain.alpha > 0.01) {
+            c.save();
+            c.globalAlpha = pMain.alpha;
+            V3.inkText(c, st.s08_main, {
+              x: W * 0.5, y: 236 - pMain.dy * 0.5, size: 92, weight: 900,
+              family: T.fonts.heavy, color: 'rgba(244,236,214,0.98)', tracking: 6
+            });
+            DFS.dbgBox('s08_main', W * 0.5 - 460, 180, W * 0.5 + 460, 296);
+            c.restore();
+          }
+          if (pNote.alpha > 0.01) {
+            c.save();
+            c.globalAlpha = pNote.alpha * 0.92;
+            V3.inkText(c, st.s08_note, {
+              x: W * 0.5 + 250, y: 848 - pNote.dy * 0.4, size: 34, weight: 400,
+              family: T.fonts.serif, color: 'rgba(214,206,186,0.9)'
+            });
+            c.globalAlpha = pNote.alpha * 0.6;
+            V3.inkText(c, st.s08_note_src, {
+              x: W * 0.5 + 330, y: 898 - pNote.dy * 0.3, size: 20, weight: 400,
+              family: T.fonts.serif, color: 'rgba(196,188,168,0.8)'
+            });
+            DFS.dbgBox('s08_note', W * 0.5 - 40, 810, W * 0.5 + 700, 920);
+            c.restore();
+          }
+        }
+      });
+
+      if (tOut > 0.001) {
         ctx.save();
-        ctx.globalAlpha = pBottom.alpha;
-        const y = 895 - pBottom.dy;
-        // 朱砂墨点
-        DFS.splatter(ctx, W * 0.5, y - 6, {
-          n: 160, radius: 150, progress: clamp((L - 3.05) / 0.5), seed: 77, alpha: 0.5
-        });
-        HUB.title(ctx, '打成了', {
-          x: W * 0.5 - 150, y, size: 68, weight: 900, family: T.fonts.heavy,
-          color: 'rgba(20,16,10,0.96)', align: 'right', tracking: 3
-        });
-        HUB.title(ctx, '诗史', {
-          x: W * 0.5 - 120, y: y + 2, size: 78, weight: 900, family: T.fonts.heavy,
-          color: T.colors.cinnabar, align: 'left', tracking: 6
-        });
-        DFS.dbgBox('cardline-bottom', W * 0.5 - 480, y - 60, W * 0.5 + 250, y + 60);
+        ctx.globalAlpha = Ease.inOutCubic(tOut) * 0.75;
+        ctx.fillStyle = '#050403';
+        ctx.fillRect(0, 0, W, H);
         ctx.restore();
       }
     }
 
-    hudDark(L) { return L < 0.9; }
+    hudDark(L) { return L < 12; }
   };
 })(window.DFS);

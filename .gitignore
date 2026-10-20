@@ -15,6 +15,12 @@ output/v2_release/*.mp4
 !output/v2_release/dufu_v2_preview_720p.mp4
 output/v2_release/*.log
 
+# V3 中间产物（母版 357MB 只留本地）
+output/v3_work/
+output/v3_qa/
+output/v3_release/dufu_v3_silent_master.mp4
+output/v3_release/*.log
+
 # ---- 第三方参考仓库（clone 下来拆解用，不入库） ----
 vendor/reference-repos/
 
