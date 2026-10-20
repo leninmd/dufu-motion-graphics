@@ -1,0 +1,28 @@
+# ---- 渲染产物（体积大，可重建） ----
+output/frames/
+output/stills/
+output/qa/
+output/final_check/
+output/timing/
+output/cmp/
+output/*.log
+output/dufu_v1.mp4
+
+# ---- 字体（68MB，用 tools/fetch_fonts.py 获取） ----
+assets/fonts/
+
+# ---- 外部工具（ffmpeg，84MB） ----
+tools/*.exe
+
+# ---- 参考片（他人作品，不入库） ----
+sushi.mp4
+
+# ---- 研究中间帧（保留 sheets 与文档） ----
+research/frames/
+
+# ---- 缓存 ----
+audio/cache/
+__pycache__/
+*.pyc
+.playwright/
+node_modules/
