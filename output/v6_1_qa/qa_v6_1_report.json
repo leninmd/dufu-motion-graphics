@@ -1,0 +1,1644 @@
+{
+  "generatedBy": "tools/qa-v6-1.mjs",
+  "version": "6.1",
+  "startedAt": "2026-10-21T12:11:27.999Z",
+  "errors": [],
+  "warnings": [],
+  "probes": [
+    {
+      "name": "F01 intro-seal-vs-subtitle",
+      "t": 4.5,
+      "ok": true,
+      "detail": "title/subtitle/seal stacked with ≥45 px clearance",
+      "seal": {
+        "id": "intro-seal-block",
+        "x": 858,
+        "y": 571,
+        "w": 644,
+        "h": 210,
+        "role": "seal"
+      },
+      "l2": {
+        "id": "intro-line-2",
+        "text": "——早在『精神内耗』这个词",
+        "x": 764,
+        "y": 421.52,
+        "w": 432.54,
+        "h": 40.96,
+        "size": 32,
+        "align": "left",
+        "color": "#251e14"
+      },
+      "l2b": {
+        "id": "intro-line-2b",
+        "text": "被发明之前的一千二百年。",
+        "x": 764,
+        "y": 465.52,
+        "w": 408,
+        "h": 40.96,
+        "size": 32,
+        "align": "left",
+        "color": "#251e14"
+      },
+      "src": {
+        "id": "intro-source",
+        "text": "——《大唐诗史压力测试报告》，卷一（虚构书名）",
+        "x": 766,
+        "y": 507.36,
+        "w": 324.09,
+        "h": 17.28,
+        "size": 13.5,
+        "align": "left",
+        "color": "rgba(56,43,27,0.66)"
+      }
+    },
+    {
+      "name": "F02a scene01-cinnabar-caption",
+      "t": 10.2,
+      "ok": true,
+      "detail": "caption band reads as cinnabar (6.21% of pixels)",
+      "px": {
+        "region": [
+          560,
+          84,
+          400,
+          70
+        ],
+        "mean": 48.71,
+        "std": 30.52,
+        "nearWhite": 0,
+        "nearBlack": 0,
+        "gold": 0.0164,
+        "goldCount": 458,
+        "cinnabar": 0.0621,
+        "numGreen": 0.0001,
+        "bright": 0.0291,
+        "warm": 0.03,
+        "cols": [
+          0,
+          7,
+          45,
+          17,
+          12,
+          34,
+          0,
+          0,
+          5,
+          0,
+          0,
+          44,
+          78,
+          1,
+          34,
+          18,
+          21,
+          51,
+          5,
+          51,
+          35,
+          0,
+          0,
+          0
+        ],
+        "_n": 28000
+      }
+    },
+    {
+      "name": "F02b scene02-ink-band-limit@12.4",
+      "t": 12.4,
+      "ok": true,
+      "detail": "spines inside [198.2, 952.6]",
+      "band": {
+        "id": "s02-ink-band",
+        "x": 0,
+        "y": 198.23088829566098,
+        "w": 1920,
+        "h": 754.335970298452,
+        "role": "ink-band",
+        "minY": 198.23,
+        "maxY": 952.57
+      }
+    },
+    {
+      "name": "F02b scene02-ink-band-limit@13",
+      "t": 13,
+      "ok": true,
+      "detail": "spines inside [191.5, 953.5]",
+      "band": {
+        "id": "s02-ink-band",
+        "x": 0,
+        "y": 191.53155301087793,
+        "w": 1920,
+        "h": 762.0103475888029,
+        "role": "ink-band",
+        "minY": 191.53,
+        "maxY": 953.54
+      }
+    },
+    {
+      "name": "F02b scene02-ink-band-limit@14",
+      "t": 14,
+      "ok": true,
+      "detail": "spines inside [185.0, 951.7]",
+      "band": {
+        "id": "s02-ink-band",
+        "x": 0,
+        "y": 185,
+        "w": 1920,
+        "h": 766.6689161390435,
+        "role": "ink-band",
+        "minY": 185,
+        "maxY": 951.67
+      }
+    },
+    {
+      "name": "F02b scene02-ink-band-limit@15",
+      "t": 15,
+      "ok": true,
+      "detail": "spines inside [215.0, 909.6]",
+      "band": {
+        "id": "s02-ink-band",
+        "x": 0,
+        "y": 215,
+        "w": 1920,
+        "h": 694.5562589980949,
+        "role": "ink-band",
+        "minY": 215,
+        "maxY": 909.56
+      }
+    },
+    {
+      "name": "F02b scene02-ink-band-limit@16",
+      "t": 16,
+      "ok": true,
+      "detail": "spines inside [215.0, 909.6]",
+      "band": {
+        "id": "s02-ink-band",
+        "x": 0,
+        "y": 215,
+        "w": 1920,
+        "h": 694.5562589980949,
+        "role": "ink-band",
+        "minY": 215,
+        "maxY": 909.56
+      }
+    },
+    {
+      "name": "F02c scene02-title-register-clean",
+      "t": 13,
+      "ok": true,
+      "detail": "title register clean (0.0% ink)",
+      "px": {
+        "region": [
+          600,
+          74,
+          360,
+          40
+        ],
+        "mean": 225.26,
+        "std": 31.87,
+        "nearWhite": 0.7072,
+        "nearBlack": 0,
+        "gold": 0.0124,
+        "goldCount": 179,
+        "cinnabar": 0.0227,
+        "numGreen": 0.0011,
+        "bright": 0.9559,
+        "warm": 0.923,
+        "cols": [
+          0,
+          8,
+          11,
+          0,
+          0,
+          10,
+          7,
+          0,
+          3,
+          7,
+          2,
+          5,
+          0,
+          1,
+          1,
+          16,
+          10,
+          7,
+          4,
+          10,
+          13,
+          18,
+          0,
+          46
+        ],
+        "_n": 14400
+      }
+    },
+    {
+      "name": "F03a scene03-mountain-base-softened",
+      "t": 22,
+      "ok": true,
+      "detail": "base band is washed (0.2% pure black, mean 19.05)",
+      "px": {
+        "region": [
+          700,
+          880,
+          600,
+          120
+        ],
+        "mean": 19.05,
+        "std": 4.42,
+        "nearWhite": 0,
+        "nearBlack": 0.002,
+        "gold": 0,
+        "goldCount": 0,
+        "cinnabar": 0,
+        "numGreen": 0,
+        "bright": 0,
+        "warm": 0,
+        "cols": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "_n": 72000
+      }
+    },
+    {
+      "name": "F03b scene04-decree-plaque-and-blocks",
+      "t": 26.4,
+      "ok": true,
+      "detail": "plaque hangs at y≈230, gate studs visible, blocks 2.2×",
+      "edict": {
+        "id": "s04-edict",
+        "text": "诏下，无一人中第",
+        "x": 680,
+        "y": 175,
+        "w": 560,
+        "h": 110,
+        "size": 47,
+        "align": "center",
+        "color": "#f6e7c2"
+      },
+      "zhi": {
+        "id": "s04-zhi",
+        "text": "致君尧舜上",
+        "x": 630.17,
+        "y": 557.54,
+        "w": 659.66,
+        "h": 156.09,
+        "size": 141,
+        "align": "center",
+        "color": "#f0dda4"
+      },
+      "px": {
+        "region": [
+          760,
+          420,
+          400,
+          110
+        ],
+        "mean": 78.27,
+        "std": 31.51,
+        "nearWhite": 0.0037,
+        "nearBlack": 0,
+        "gold": 0.042,
+        "goldCount": 1849,
+        "cinnabar": 0.7461,
+        "numGreen": 0,
+        "bright": 0.052,
+        "warm": 0.0519,
+        "cols": [
+          113,
+          51,
+          48,
+          142,
+          51,
+          48,
+          118,
+          74,
+          48,
+          53,
+          117,
+          51,
+          110,
+          110,
+          26,
+          45,
+          100,
+          90,
+          51,
+          51,
+          138,
+          51,
+          51,
+          112
+        ],
+        "_n": 44000
+      }
+    },
+    {
+      "name": "F04 scene05-ledger-slabs-clear-figure",
+      "t": 33.2,
+      "ok": true,
+      "detail": "slab load sits in y∈[455,556], silhouette exposed",
+      "weights": {
+        "id": "s05-weights",
+        "text": "朝扣富儿门，残杯与冷炙",
+        "x": 850,
+        "y": 455,
+        "w": 320,
+        "h": 100,
+        "size": 36,
+        "align": "left",
+        "color": "#f0e7cf"
+      },
+      "load": {
+        "id": "s05-load-band",
+        "x": 850,
+        "y": 440,
+        "w": 320,
+        "h": 130,
+        "role": "load"
+      },
+      "figure": {
+        "id": "s05-figure",
+        "x": 917.2961326185628,
+        "y": 580,
+        "w": 192,
+        "h": 300,
+        "role": "figure"
+      },
+      "px": {
+        "region": [
+          880,
+          590,
+          180,
+          260
+        ],
+        "mean": 197.05,
+        "std": 49.09,
+        "nearWhite": 0,
+        "nearBlack": 0,
+        "gold": 0.0008,
+        "goldCount": 36,
+        "cinnabar": 0,
+        "numGreen": 0,
+        "bright": 0.8816,
+        "warm": 0.8898,
+        "cols": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          20,
+          1,
+          7,
+          0,
+          0
+        ],
+        "_n": 46800
+      }
+    },
+    {
+      "name": "F05a scene06-no-leaked-corner-tag",
+      "t": 36.6,
+      "ok": true,
+      "detail": "bottom-left corner is free of era-07 type",
+      "stray": []
+    },
+    {
+      "name": "F05b scene06-era-card-legible",
+      "t": 36.6,
+      "ok": true,
+      "detail": "era card title box 175×35",
+      "cardTitle": {
+        "id": "era-06",
+        "text": "构成主义切割",
+        "x": 76,
+        "y": 66.72,
+        "w": 175.2,
+        "h": 34.56,
+        "size": 27,
+        "align": "left",
+        "color": "#fdf6e6"
+      }
+    },
+    {
+      "name": "F05c scene07-split-couplet",
+      "t": 46.2,
+      "ok": true,
+      "detail": "【国破】 ends at 828, 【山河在】 starts at 1092, crack 836..1084",
+      "left": {
+        "id": "s07-split-left",
+        "text": "国破",
+        "x": 562,
+        "y": 544,
+        "w": 266,
+        "h": 152,
+        "size": 112,
+        "align": "right",
+        "color": "#171310"
+      },
+      "right": {
+        "id": "s07-split-right",
+        "text": "山河在",
+        "x": 1092,
+        "y": 544,
+        "w": 402,
+        "h": 152,
+        "size": 112,
+        "align": "left",
+        "color": "#171310"
+      },
+      "crack": {
+        "id": "s07-crack",
+        "x": 836,
+        "y": 0,
+        "w": 248,
+        "h": 1080,
+        "gap": 124,
+        "role": "abyss"
+      },
+      "plate": {
+        "id": "s07-nameplate",
+        "x": 366,
+        "y": 842,
+        "w": 1188,
+        "h": 78,
+        "role": "nameplate"
+      }
+    },
+    {
+      "name": "F06 scene08-letter-single-couplet",
+      "t": 51.8,
+      "ok": true,
+      "detail": "single banner at (960, 839), paper luma 192.64",
+      "full": {
+        "id": "s08-poem-full",
+        "text": "烽火连三月，家书抵万金。",
+        "x": 620,
+        "y": 806,
+        "w": 680,
+        "h": 66,
+        "size": 60,
+        "align": "center",
+        "color": null
+      },
+      "px": {
+        "region": [
+          880,
+          400,
+          180,
+          200
+        ],
+        "mean": 192.64,
+        "std": 58.09,
+        "nearWhite": 0.1625,
+        "nearBlack": 0,
+        "gold": 0,
+        "goldCount": 0,
+        "cinnabar": 0,
+        "numGreen": 0,
+        "bright": 0.8212,
+        "warm": 0.8221,
+        "cols": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "_n": 36000
+      }
+    },
+    {
+      "name": "F07 scene10-bullet-time-clean",
+      "t": 63.4,
+      "ok": true,
+      "detail": "field is suspended straw + 470 beads, no ghost headline",
+      "field": {
+        "id": "s10-particle-field",
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1080,
+        "role": "particle-field",
+        "frozen": 1,
+        "particleHeadline": 0,
+        "beads": 470,
+        "particles": 8000
+      },
+      "px": {
+        "region": [
+          300,
+          360,
+          120,
+          260
+        ],
+        "mean": 21.68,
+        "std": 12.34,
+        "nearWhite": 0,
+        "nearBlack": 0.0983,
+        "gold": 0,
+        "goldCount": 0,
+        "cinnabar": 0.0246,
+        "numGreen": 0,
+        "bright": 0.0002,
+        "warm": 0.0001,
+        "cols": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "_n": 31200
+      }
+    },
+    {
+      "name": "F08a scene11-waterfall",
+      "t": 67.5,
+      "ok": true,
+      "detail": "cataract is mist + threads (0.0% white, 27.3% lit, std 60.17)",
+      "px": {
+        "region": [
+          1150,
+          620,
+          200,
+          360
+        ],
+        "mean": 97.79,
+        "std": 60.17,
+        "nearWhite": 0,
+        "nearBlack": 0,
+        "gold": 0,
+        "goldCount": 0,
+        "cinnabar": 0,
+        "numGreen": 0,
+        "bright": 0.2728,
+        "warm": 0.3364,
+        "cols": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "_n": 72000
+      }
+    },
+    {
+      "name": "F08b scene12-egret-clearance",
+      "t": 75.6,
+      "ok": true,
+      "detail": "egret centre x=1212, 409px clear",
+      "gull": {
+        "id": "s12-gull",
+        "text": "沙鸥",
+        "x": 1057.59,
+        "y": 298.47,
+        "w": 308.88,
+        "h": 135.13,
+        "size": 97,
+        "align": "center",
+        "color": "#1b1812"
+      },
+      "poem": {
+        "id": "s12-poem",
+        "text": "星垂平野阔，月涌大江流。飘飘何所似，天地一沙鸥",
+        "x": 1621,
+        "y": 211,
+        "w": 134,
+        "h": 569.52,
+        "size": 42,
+        "align": "center",
+        "color": "#1b1812"
+      }
+    },
+    {
+      "name": "F09a scene14-rubble-separation@88.8",
+      "t": 88.8,
+      "ok": true,
+      "detail": "min pair 1.113× fs (sep 0.941), rubble y=753..1030",
+      "rub": {
+        "id": "s14-rubble",
+        "x": 24.164,
+        "y": 752.5999999999999,
+        "w": 1801.0880000000002,
+        "h": 277.45000000000005,
+        "role": "rubble",
+        "minPairRatio": 0.835,
+        "minPairRatioMin": 1.113,
+        "separation": 0.941,
+        "floor": 1028
+      },
+      "verdict": {
+        "id": "s14-verdict",
+        "text": "失意者",
+        "x": 858,
+        "y": 472,
+        "w": 204,
+        "h": 80,
+        "size": 58,
+        "align": "center",
+        "color": "#c2402f"
+      },
+      "question": {
+        "id": "s14-question",
+        "text": "「你还肯为这个人间，流一滴眼泪吗？」",
+        "x": 506.75,
+        "y": 246.4,
+        "w": 906.5,
+        "h": 67.2,
+        "size": 48,
+        "align": "center",
+        "color": "#f1e6cf"
+      }
+    },
+    {
+      "name": "F09a scene14-rubble-separation@89.4",
+      "t": 89.4,
+      "ok": true,
+      "detail": "min pair 1.113× fs (sep 0.941), rubble y=753..1030",
+      "rub": {
+        "id": "s14-rubble",
+        "x": 24.164,
+        "y": 752.5999999999999,
+        "w": 1801.0880000000002,
+        "h": 277.45000000000005,
+        "role": "rubble",
+        "minPairRatio": 0.835,
+        "minPairRatioMin": 1.113,
+        "separation": 0.941,
+        "floor": 1028
+      },
+      "verdict": {
+        "id": "s14-verdict",
+        "text": "失意者",
+        "x": 858,
+        "y": 472,
+        "w": 204,
+        "h": 80,
+        "size": 58,
+        "align": "center",
+        "color": "#c2402f"
+      },
+      "question": {
+        "id": "s14-question",
+        "text": "「你还肯为这个人间，流一滴眼泪吗？」",
+        "x": 506.75,
+        "y": 246.4,
+        "w": 906.5,
+        "h": 67.2,
+        "size": 48,
+        "align": "center",
+        "color": "#f1e6cf"
+      }
+    },
+    {
+      "name": "F09b scene15-four-cards-stay@93",
+      "t": 93,
+      "ok": true,
+      "detail": "4 cards side by side, span 1372px",
+      "cards": [
+        {
+          "id": "s15-card-0",
+          "x": 273.8451152163715,
+          "y": 547.7764104597724,
+          "w": 293.66793860899236,
+          "h": 300.2494159499164,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 0.104
+        },
+        {
+          "id": "s15-card-1",
+          "x": 649.1358764764677,
+          "y": 557.3726254127026,
+          "w": 270.90496055412143,
+          "h": 290.07351392841394,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 0.104
+        },
+        {
+          "id": "s15-card-2",
+          "x": 999.9612330447617,
+          "y": 557.4907188699455,
+          "w": 270.90371255326545,
+          "h": 290.07834593025336,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 0.104
+        },
+        {
+          "id": "s15-card-3",
+          "x": 1352.489351666304,
+          "y": 547.9920694613897,
+          "w": 293.6798317642631,
+          "h": 300.2585675361461,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 0.104
+        }
+      ],
+      "px": {
+        "region": [
+          300,
+          540,
+          1320,
+          300
+        ],
+        "mean": 156.75,
+        "std": 63.51,
+        "nearWhite": 0.0066,
+        "nearBlack": 0.0014,
+        "gold": 0.0216,
+        "goldCount": 8560,
+        "cinnabar": 0.0218,
+        "numGreen": 0,
+        "bright": 0.6994,
+        "warm": 0.7199,
+        "cols": [
+          57,
+          70,
+          82,
+          189,
+          783,
+          0,
+          1083,
+          401,
+          592,
+          501,
+          182,
+          953,
+          948,
+          134,
+          169,
+          174,
+          165,
+          1110,
+          0,
+          723,
+          106,
+          81,
+          57,
+          0
+        ],
+        "_n": 396000
+      }
+    },
+    {
+      "name": "F09b scene15-four-cards-stay@94.8",
+      "t": 94.8,
+      "ok": true,
+      "detail": "4 cards side by side, span 1372px",
+      "cards": [
+        {
+          "id": "s15-card-0",
+          "x": 274.44069281430745,
+          "y": 546.9087731772868,
+          "w": 292.589063387681,
+          "h": 300.21058934745497,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 1
+        },
+        {
+          "id": "s15-card-1",
+          "x": 646.9633197431981,
+          "y": 557.9408218339681,
+          "w": 275.17263036775967,
+          "h": 293.70685012314436,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 1
+        },
+        {
+          "id": "s15-card-2",
+          "x": 998.3459542748802,
+          "y": 553.6782280323338,
+          "w": 274.08779915253615,
+          "h": 292.62215202712036,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 1
+        },
+        {
+          "id": "s15-card-3",
+          "x": 1351.7259260917713,
+          "y": 537.1155179129757,
+          "w": 294.4227300108305,
+          "h": 300.8679226733443,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 1
+        }
+      ],
+      "px": {
+        "region": [
+          300,
+          540,
+          1320,
+          300
+        ],
+        "mean": 159.73,
+        "std": 59.66,
+        "nearWhite": 0.0098,
+        "nearBlack": 0.0003,
+        "gold": 0.0217,
+        "goldCount": 8611,
+        "cinnabar": 0.0219,
+        "numGreen": 0.0001,
+        "bright": 0.7049,
+        "warm": 0.7263,
+        "cols": [
+          56,
+          66,
+          54,
+          124,
+          566,
+          0,
+          901,
+          400,
+          539,
+          492,
+          162,
+          1039,
+          752,
+          237,
+          268,
+          258,
+          295,
+          1229,
+          0,
+          825,
+          174,
+          114,
+          37,
+          23
+        ],
+        "_n": 396000
+      }
+    },
+    {
+      "name": "F09b scene15-four-cards-stay@95.6",
+      "t": 95.6,
+      "ok": true,
+      "detail": "4 cards side by side, span 1372px",
+      "cards": [
+        {
+          "id": "s15-card-0",
+          "x": 272.08349766867775,
+          "y": 546.8665879436146,
+          "w": 297.1101027480894,
+          "h": 303.45303568580107,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 1
+        },
+        {
+          "id": "s15-card-1",
+          "x": 649.0290734967354,
+          "y": 551.6872924707654,
+          "w": 271.2534512553674,
+          "h": 289.94901688027016,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 1
+        },
+        {
+          "id": "s15-card-2",
+          "x": 998.0069849124818,
+          "y": 544.9243900920436,
+          "w": 274.5567201198346,
+          "h": 292.90301812115354,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 1
+        },
+        {
+          "id": "s15-card-3",
+          "x": 1353.9749818668622,
+          "y": 540.2705998768353,
+          "w": 289.96619831987186,
+          "h": 299.9087951324883,
+          "role": "card",
+          "front": 1,
+          "alpha": 1,
+          "settle": 1
+        }
+      ],
+      "px": {
+        "region": [
+          300,
+          540,
+          1320,
+          300
+        ],
+        "mean": 160.22,
+        "std": 58.65,
+        "nearWhite": 0.0069,
+        "nearBlack": 0.0004,
+        "gold": 0.0264,
+        "goldCount": 10461,
+        "cinnabar": 0.0225,
+        "numGreen": 0,
+        "bright": 0.7121,
+        "warm": 0.7336,
+        "cols": [
+          64,
+          59,
+          92,
+          182,
+          849,
+          0,
+          1150,
+          568,
+          641,
+          698,
+          308,
+          1131,
+          1064,
+          363,
+          333,
+          353,
+          308,
+          1020,
+          0,
+          948,
+          159,
+          104,
+          67,
+          0
+        ],
+        "_n": 396000
+      }
+    },
+    {
+      "name": "F10a scene18-code-crisp",
+      "t": 111,
+      "ok": true,
+      "detail": "integer leading 26, 1.03% number-token ink",
+      "m": {
+        "id": "s18-code-metrics",
+        "x": 166,
+        "y": 392,
+        "w": 820,
+        "h": 24,
+        "role": "code-metrics",
+        "lineH": 26,
+        "integerLeading": 1,
+        "originY": 404,
+        "integerOrigin": 1
+      },
+      "px": {
+        "region": [
+          160,
+          388,
+          860,
+          30
+        ],
+        "mean": 30.87,
+        "std": 48.46,
+        "nearWhite": 0,
+        "nearBlack": 0,
+        "gold": 0.0106,
+        "goldCount": 273,
+        "cinnabar": 0.0028,
+        "numGreen": 0.0103,
+        "bright": 0.0739,
+        "warm": 0.0197,
+        "cols": [
+          0,
+          0,
+          4,
+          0,
+          0,
+          9,
+          15,
+          97,
+          48,
+          21,
+          19,
+          12,
+          0,
+          0,
+          15,
+          0,
+          0,
+          15,
+          18,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "_n": 25800
+      }
+    },
+    {
+      "name": "F10b outro-19-milky-way@134.4",
+      "t": 134.4,
+      "ok": true,
+      "detail": "ribbon spans 100% of the cell, peak slice 10%",
+      "seat": {
+        "id": "outro-empty-seat",
+        "text": "第19格 · 缺席者席位",
+        "x": 525.21,
+        "y": 390.03,
+        "w": 869.57,
+        "h": 299.94,
+        "size": 11,
+        "align": "left",
+        "color": null
+      },
+      "px": {
+        "region": [
+          533,
+          444,
+          854,
+          198
+        ],
+        "mean": 79.23,
+        "std": 39.41,
+        "nearWhite": 0.0135,
+        "nearBlack": 0,
+        "gold": 0.0396,
+        "goldCount": 6697,
+        "cinnabar": 0.002,
+        "numGreen": 0.0001,
+        "bright": 0.0638,
+        "warm": 0.0722,
+        "_n": 169092
+      }
+    },
+    {
+      "name": "F10b outro-19-milky-way@135.2",
+      "t": 135.2,
+      "ok": true,
+      "detail": "ribbon spans 100% of the cell, peak slice 10%",
+      "seat": {
+        "id": "outro-empty-seat",
+        "text": "第19格 · 缺席者席位",
+        "x": 514.65,
+        "y": 386.39,
+        "w": 890.7,
+        "h": 307.23,
+        "size": 11,
+        "align": "left",
+        "color": null
+      },
+      "px": {
+        "region": [
+          523,
+          442,
+          875,
+          203
+        ],
+        "mean": 97.61,
+        "std": 47.65,
+        "nearWhite": 0.0367,
+        "nearBlack": 0,
+        "gold": 0.0777,
+        "goldCount": 13803,
+        "cinnabar": 0.006,
+        "numGreen": 0.0002,
+        "bright": 0.1229,
+        "warm": 0.1408,
+        "_n": 177625
+      }
+    },
+    {
+      "name": "F10b outro-19-milky-way@136",
+      "t": 136,
+      "ok": true,
+      "detail": "ribbon spans 100% of the cell, peak slice 8%",
+      "seat": {
+        "id": "outro-empty-seat",
+        "text": "第19格 · 缺席者席位",
+        "x": 463.2,
+        "y": 368.64,
+        "w": 993.6,
+        "h": 342.72,
+        "size": 11,
+        "align": "left",
+        "color": null
+      },
+      "px": {
+        "region": [
+          471,
+          430,
+          978,
+          226
+        ],
+        "mean": 69.88,
+        "std": 38.36,
+        "nearWhite": 0.001,
+        "nearBlack": 0,
+        "gold": 0.023,
+        "goldCount": 5087,
+        "cinnabar": 0.1698,
+        "numGreen": 0,
+        "bright": 0.0546,
+        "warm": 0.0713,
+        "_n": 221028
+      }
+    }
+  ],
+  "table54": [
+    {
+      "i": 1,
+      "bar": 1,
+      "t": 6.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 1,
+      "bar": 2,
+      "t": 8.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 1,
+      "bar": 3,
+      "t": 10.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 2,
+      "bar": 1,
+      "t": 12.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 2,
+      "bar": 2,
+      "t": 14.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 2,
+      "bar": 3,
+      "t": 16.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 3,
+      "bar": 1,
+      "t": 18.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 3,
+      "bar": 2,
+      "t": 20.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 3,
+      "bar": 3,
+      "t": 22.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 4,
+      "bar": 1,
+      "t": 24.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 4,
+      "bar": 2,
+      "t": 26.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 4,
+      "bar": 3,
+      "t": 28.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 5,
+      "bar": 1,
+      "t": 30.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 5,
+      "bar": 2,
+      "t": 32.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 5,
+      "bar": 3,
+      "t": 34.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 6,
+      "bar": 1,
+      "t": 36.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 6,
+      "bar": 2,
+      "t": 38.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 6,
+      "bar": 3,
+      "t": 40.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 7,
+      "bar": 1,
+      "t": 42.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 7,
+      "bar": 2,
+      "t": 44.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 7,
+      "bar": 3,
+      "t": 46.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 8,
+      "bar": 1,
+      "t": 48.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 8,
+      "bar": 2,
+      "t": 50.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 8,
+      "bar": 3,
+      "t": 52.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 9,
+      "bar": 1,
+      "t": 54.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 9,
+      "bar": 2,
+      "t": 56.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 9,
+      "bar": 3,
+      "t": 58.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 10,
+      "bar": 1,
+      "t": 60.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 10,
+      "bar": 2,
+      "t": 62.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 10,
+      "bar": 3,
+      "t": 64.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 11,
+      "bar": 1,
+      "t": 66.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 11,
+      "bar": 2,
+      "t": 68.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 11,
+      "bar": 3,
+      "t": 70.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 12,
+      "bar": 1,
+      "t": 72.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 12,
+      "bar": 2,
+      "t": 74.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 12,
+      "bar": 3,
+      "t": 76.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 13,
+      "bar": 1,
+      "t": 78.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 13,
+      "bar": 2,
+      "t": 80.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 13,
+      "bar": 3,
+      "t": 82.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 14,
+      "bar": 1,
+      "t": 84.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 14,
+      "bar": 2,
+      "t": 86.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 14,
+      "bar": 3,
+      "t": 88.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 15,
+      "bar": 1,
+      "t": 90.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 15,
+      "bar": 2,
+      "t": 92.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 15,
+      "bar": 3,
+      "t": 94.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 16,
+      "bar": 1,
+      "t": 96.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 16,
+      "bar": 2,
+      "t": 98.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 16,
+      "bar": 3,
+      "t": 100.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 17,
+      "bar": 1,
+      "t": 102.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 17,
+      "bar": 2,
+      "t": 104.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 17,
+      "bar": 3,
+      "t": 106.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 18,
+      "bar": 1,
+      "t": 108.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 18,
+      "bar": 2,
+      "t": 110.9,
+      "ok": true,
+      "issues": []
+    },
+    {
+      "i": 18,
+      "bar": 3,
+      "t": 112.9,
+      "ok": true,
+      "issues": []
+    }
+  ],
+  "stats": {
+    "elapsedSeconds": 16.3,
+    "probes": 27,
+    "passed": 27,
+    "table54": {
+      "cells": 54,
+      "passed": 54
+    }
+  }
+}

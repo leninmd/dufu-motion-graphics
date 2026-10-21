@@ -23,22 +23,24 @@ const BONE = '#f1e6cf';
 const RED = '#a52a22';
 const DEEP = '#5b1114';
 
-const SHIFT_Y = 36;                     // clears the era card, keeps the pile inside frame
-const SHIFT_X = 100;                    // the baked hold rows start under the card otherwise
-const FLOOR = COLLAPSE.floorY + SHIFT_Y; // 1050
+const SHIFT_Y = 14;                     // keeps the pile on the locked ground band
+const SHIFT_X = 0;                      // the baked field already spans 14..1835
+const FLOOR = COLLAPSE.floorY + SHIFT_Y; // 1028 — inside the locked y ∈ [820, 1030] band
 const RELEASE = 2.0;
 const FLY = 2.15;                       // 240 baked frames over 2.15 s
 const FRAMES = COLLAPSE.frames;
 const BODIES = COLLAPSE.bodies;
 
-const RING = { cx: 1095, cy: 748, rx: 336, ry: 158 };
+const RING = { cx: 960, cy: 512, rx: 336, ry: 154 };
 const TEAR_X = 1520;
 
-/** Horizontal framing: the baked field is nudged off the era card, and the far
- *  right of the pile is gently compressed so no sentence exits the frame. */
+/**
+ * Horizontal framing. This must stay a rigid translation: an anisotropic
+ * squeeze here re-packed bodies that the pre-bake had carefully separated and
+ * reintroduced the exact interpenetration the relaxation pass exists to stop.
+ */
 function mapX(x) {
-  const v = x + SHIFT_X;
-  return v > 1620 ? 1620 + (v - 1620) * 0.55 : v;
+  return x + SHIFT_X;
 }
 
 let S = null;
@@ -756,7 +758,7 @@ function drawVerdict(ctx, u) {
   const p = smoothstep(3.46, 3.95, u);
   if (p <= 0) return;
   const { cx } = RING;
-  const cy = 628;
+  const cy = 512;
   ctx.save();
   // a dark breath under the ink so it reads over black-on-black rubble
   const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 230);
@@ -798,7 +800,7 @@ function drawVerdict(ctx, u) {
   const np = smoothstep(3.8, 4.2, u);
   if (np > 0) {
     ctx.globalAlpha = np * 0.95;
-    const noteY = 692;
+    const noteY = 588;
     const dashW = KIT.measure(ctx, '——', { size: 25, font: KIT.FONT.serif, weight: 500 });
     const rest = '世人眼中的废物';
     const restW = KIT.measure(ctx, rest, { size: 25, font: KIT.FONT.serif, weight: 500, letterSpacing: 3.4 });
@@ -828,7 +830,7 @@ function drawQuestion(ctx, u) {
   const spacing = 2.5 + 9 * (1 - p);
   const widths = chars.map((ch) => KIT.measure(ctx, ch, { size, font: KIT.FONT.display, weight: 500 }));
   const total = widths.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
-  const y = 392;
+  const y = 280;
   let x = 960 - total / 2;
   // a warm breath behind the line
   const g = ctx.createRadialGradient(960, y, 20, 960, y, 640);
@@ -1030,6 +1032,44 @@ export function renderAt(ctx, u, beat, env) {
   ctx.globalAlpha = 0.075;
   ctx.drawImage(st.grain, 0, 0, W, H);
   ctx.restore();
+
+  /* ---- QA probe: the settled rubble must be non-interpenetrating (centres at
+   * least 0.75 × fontSize apart), must live on the locked ground band, and the
+   * three typographic decks must never collide with it. */
+  if (u >= 4.2) {
+    const fRaw = (u - RELEASE) * (FRAMES / FLY);
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let worstMax = Infinity, worstMin = Infinity, worstSep = Infinity;
+    const pts = [];
+    for (let i = 0; i < BODIES.length; i++) {
+      const s = sampleBody(i, fRaw);
+      const b = BODIES[i];
+      const halfW = (b.w / 2) * 0.72;
+      minX = Math.min(minX, s.x - halfW); maxX = Math.max(maxX, s.x + halfW);
+      minY = Math.min(minY, s.y - b.h / 2); maxY = Math.max(maxY, s.y + b.h / 2);
+      pts.push({ x: s.x, y: s.y, fs: b.size, r: b.r });
+    }
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+        // (a) the literal spec metric: centre distance / fontSize
+        const rMax = d / Math.max(pts[i].fs, pts[j].fs);
+        const rMin = d / Math.min(pts[i].fs, pts[j].fs);
+        // (b) the physical metric: distance / sum of separation radii
+        const sep = d / Math.max(1, pts[i].r + pts[j].r);
+        if (rMax < worstMax) worstMax = rMax;
+        if (rMin < worstMin) worstMin = rMin;
+        if (sep < worstSep) worstSep = sep;
+      }
+    }
+    KIT.debug.markBox('s14-rubble', minX, minY, maxX - minX, maxY - minY, {
+      role: 'rubble',
+      minPairRatio: +worstMax.toFixed(3),
+      minPairRatioMin: +worstMin.toFixed(3),
+      separation: +worstSep.toFixed(3),
+      floor: FLOOR,
+    });
+  }
 }
 
 export default { renderAt };

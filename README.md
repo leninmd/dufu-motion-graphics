@@ -1,4 +1,4 @@
-# 少陵测试 · The Du Fu Test（V6）
+# 少陵测试 · The Du Fu Test（V6.1 外科精修版）
 
 > 人类自古以来就试图用代码编译苦难。
 >
@@ -8,16 +8,21 @@
 
 故事只有一条线：一个背着诗卷的行者杜甫，沿一条贯穿全片的 4,739 公里地平线，穿过 18 个时代／媒介，最后在 2026 年的深色代码编辑器里被重新写成漫天星辰。
 
+> **V6.1**：时间轴、目录结构与跨框调度器与 V6 完全一致，只做帧级外科手术 —— 清除 10 处画面遮挡／字符重影／构图瑕疵，并对 04／05／11／14／15 五个版块做密度升级。逐项说明见 [`docs/v6.1-polish-report.md`](docs/v6.1-polish-report.md)，新的画面质量门是 [`tools/qa-v6-1.mjs`](tools/qa-v6-1.mjs)（27 项专项像素探针 + 54 格三小节核查表）。
+
 ## 交付物
 
 | 产物 | 路径 |
 |---|---|
 | 交互式预览 | [`preview/index.html`](preview/index.html) · `node tools/server.mjs 5180` 后打开 |
-| 1080p 成片 | `output/v6_pelican_paradigm/dufu_test_1080p.mp4` |
-| 720p 预览版 | `output/v6_pelican_paradigm/dufu_test_720p_preview.mp4` |
+| **1080p 母版（V6.1）** | `output/v6_1_master/dufu_test_v6_1_1080p.mp4` |
+| 1080p 分享版（V6.1） | `output/v6_1_master/dufu_test_v6_1_1080p_share.mp4` |
+| **720p 分享版（V6.1）** | `output/v6_1_master/dufu_test_v6_1_720p_preview.mp4` |
+| V6.1 画面质量门 | `node tools/qa-v6-1.mjs` → `output/v6_1_qa/qa_v6_1_report.json` |
+| 结构质量门 | `node tools/qa-gate.mjs` → `output/v6_qa/qa_report.json` |
 | 18 时代接触表 | `output/v6_pelican_paradigm/contact_sheet_18_eras.png` |
 | 54 格三小节核查表 | `output/v6_qa/contact_sheet_beats.png` |
-| QA 报告 | `output/v6_qa/qa_report.json` |
+| V6.1 精修报告 | [`docs/v6.1-polish-report.md`](docs/v6.1-polish-report.md) |
 | 完整工程记录 | [`docs/v6-production.md`](docs/v6-production.md) |
 | 分镜简报 | [`briefs/`](briefs/) |
 

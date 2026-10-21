@@ -132,17 +132,71 @@ function peakOutline() {
   return { top, base, right, left };
 }
 
+function drawWaistClouds(ctx, u, a, morph) {
+  // Two horizontal ink-wash cloud belts at the waist of the peak. They dissolve
+  // the hard polygon base: the mountain no longer sits on a cut-out silhouette
+  // but melts into weather.
+  ctx.save();
+  ctx.globalAlpha = a * (1 - 0.45 * morph);
+  const bands = [
+    { y: 636, h: 58, drift: 46, alpha: 0.5, seed: 3 },
+    { y: 742, h: 76, drift: -34, alpha: 0.62, seed: 8 },
+  ];
+  for (const band of bands) {
+    for (let i = 0; i < 9; i++) {
+      const rt = KIT.unit('s03cloud', band.seed, i);
+      const r2 = KIT.unit('s03cloudb', band.seed, i);
+      const r3 = KIT.unit('s03cloudc', band.seed, i);
+      const px = rt * (W + 520) - 260 + Math.sin(u * 0.35 + i * 0.9) * band.drift;
+      const py = band.y + Math.sin(i * 1.7 + band.seed) * band.h * 0.42;
+      const rx = 170 + r2 * 240;
+      const ry = band.h * (0.5 + r3 * 0.45);
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(1, ry / rx);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+      g.addColorStop(0, `rgba(206,232,220,${(0.30 * band.alpha).toFixed(3)})`);
+      g.addColorStop(0.45, `rgba(140,188,172,${(0.19 * band.alpha).toFixed(3)})`);
+      g.addColorStop(0.82, `rgba(70,116,104,${(0.09 * band.alpha).toFixed(3)})`);
+      g.addColorStop(1, 'rgba(30,64,56,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, rx, 0, KIT.TAU); ctx.fill();
+      ctx.restore();
+    }
+    // a thin dragging filament makes the belt read as moving weather
+    ctx.strokeStyle = `rgba(200,230,217,${(0.18 * band.alpha).toFixed(3)})`;
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 3; i++) {
+      const y0 = band.y + (i - 1) * band.h * 0.36;
+      const off = ((u * 26 * (i % 2 ? 1 : -1)) % 420);
+      ctx.beginPath();
+      for (let x = -40; x <= W + 40; x += 40) {
+        const y = y0 + Math.sin((x + off) * 0.006 + i * 2.1 + band.seed) * band.h * 0.34;
+        if (x === -40) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 function drawCentralPeak(ctx, u, morph) {
   if (morph <= 0.01) return;
   const a = smoothstep(0.2, 0.9, morph);
   const { top, right, left } = peakOutline();
   ctx.save();
   ctx.globalAlpha = a;
-  const g = ctx.createLinearGradient(PEAK_X - 330, top, PEAK_X + 410, 760);
-  g.addColorStop(0, 'rgba(9,24,20,0.3)');
-  g.addColorStop(0.24, 'rgba(4,13,12,0.82)');
-  g.addColorStop(0.58, 'rgba(2,8,7,0.94)');
-  g.addColorStop(1, 'rgba(1,4,4,0.98)');
+  // Vertical wash: deep ink-green at the waist, dissolving to an empty cloud
+  // bottom. No hard geometric silhouette edge survives below y≈800.
+  const g = ctx.createLinearGradient(0, 190, 0, 992);
+  g.addColorStop(0, 'rgba(9,24,20,0.30)');
+  g.addColorStop(0.16, 'rgba(4,13,12,0.82)');
+  g.addColorStop(0.44, 'rgba(2,8,7,0.93)');
+  g.addColorStop(0.60, 'rgba(5,23,19,0.84)');
+  g.addColorStop(0.72, 'rgba(7,30,24,0.54)');
+  g.addColorStop(0.84, 'rgba(9,36,29,0.24)');
+  g.addColorStop(0.94, 'rgba(11,42,34,0.05)');
+  g.addColorStop(1, 'rgba(11,42,34,0)');
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.moveTo(PEAK_X, top);
@@ -424,6 +478,7 @@ export function renderAt(ctx, u, beat, env = {}) {
   drawMist(ctx, u, morph);
   drawCentralPeak(ctx, u, morph);
   drawPoints(ctx, u, yaw, morph);
+  drawWaistClouds(ctx, u, 0.55 + 0.45 * smoothstep(0.3, 1.2, u), morph);
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   for (const s of SPECKS) {

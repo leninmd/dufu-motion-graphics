@@ -685,15 +685,18 @@ const GULLPART = (() => {
 })();
 
 function gullPos(u) {
+  // The flight ends BELOW-LEFT OF THE MOON at (1216, 358): it lifts off above
+  // the lone boat, skims the central moonlit water and hovers there. It never
+  // reaches the vertical couplet (x ≥ 1611), keeping ≥ 240 px of clean paper.
   const p = clamp01((u - 2.0) / 1.72);
   const e = p * p * (3 - 2 * p);
-  const p0 = [872, 736], p1 = [1210, 700], p2 = [1748, 456];
+  const p0 = [872, 736], p1 = [1074, 648], p2 = [1216, 358];
   const x = (1 - e) * (1 - e) * p0[0] + 2 * (1 - e) * e * p1[0] + e * e * p2[0];
   const y = (1 - e) * (1 - e) * p0[1] + 2 * (1 - e) * e * p1[1] + e * e * p2[1];
   const dx = 2 * (1 - e) * (p1[0] - p0[0]) + 2 * e * (p2[0] - p1[0]);
   const dy = 2 * (1 - e) * (p1[1] - p0[1]) + 2 * e * (p2[1] - p1[1]);
   const rot = Math.atan2(dy, dx) * 0.36 - 0.06;
-  const scale = 118 + 14 * Math.sin(Math.PI * e);
+  const scale = 96 + 12 * Math.sin(Math.PI * e);
   return { x, y, rot, scale, p };
 }
 
@@ -703,8 +706,10 @@ function drawGull(ctx, u) {
   const gp = gullPos(u);
   const flap = Math.sin((u - 2.0) * TAU * 1.36 - 0.4);
   const G = gullGeom(flap);
-  const alpha = smoothstep(1.99, 2.12, u) * (1 - smoothstep(3.36, 3.76, u));
+  const alpha = smoothstep(1.99, 2.12, u) * (1 - smoothstep(3.95, 4.25, u));
   if (alpha <= 0.002) return;
+  markText('s12-gull', '沙鸥', gp.x - gp.scale * 1.6, gp.y - gp.scale * 0.7,
+    gp.scale * 3.2, gp.scale * 1.4, { size: Math.round(gp.scale), align: 'center', color: INK });
   const c = Math.cos(gp.rot), s = Math.sin(gp.rot);
   const S = gp.scale;
   const L2W = (x, y) => [gp.x + (x * c - y * s) * S, gp.y + (x * s + y * c) * S];

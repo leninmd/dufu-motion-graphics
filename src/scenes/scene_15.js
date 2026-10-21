@@ -738,29 +738,62 @@ function drawCards(ctx, u) {
   const st = ensure();
   const cam = st.cam;
   const cards = [];
+  // From 01:33 to 01:36 the four revealed masterpieces stay laid out side by
+  // side and fully readable: no fan-fold, no exit. Only a soft breathing hover.
+  const settle = smoothstep(2.9, 3.4, u);
   for (let i = 0; i < 4; i++) {
     const deal = easeOut(clamp01((u - 0.18 - i * 0.1) / 0.5));
     const fp = clamp01((u - FLIP_AT[i]) / FLIP_DUR);
     const ang = Math.PI * easeInOutSine(fp);
     const lift = Math.sin(Math.PI * fp) * 20;
     const rise = (1 - deal) * -140;
-    const gather = smoothstep(4.12, 4.68, u);
-    const fly = smoothstep(4.56 + i * 0.03, 5.3 + i * 0.03, u);
-    const cx = lerp(lerp(CARD_X[i], CARD_X[i] * 0.22, gather), 1500 + i * 150, fly);
-    const cz = lerp(CARD_Z[i], CARD_Z[i] + 60, gather) + fly * 500;
-    const cy = rise - lift - gather * 18 + fly * 70;
-    const yaw = CARD_YAW[i] + ang + gather * (i - 1.5) * 0.05;
-    const tilt = Math.sin(Math.PI * fp) * 0.045 * (i % 2 ? 1 : -1) + gather * (i - 1.5) * 0.06;
+    const hover = Math.sin((u - 3.0) * 2.05 + i * 1.15) * 7.5 * settle;
+    const hoverTilt = Math.sin((u - 3.0) * 1.6 + i * 2.1) * 0.014 * settle;
+    const cx = CARD_X[i];
+    const cz = CARD_Z[i];
+    const cy = rise - lift + hover + settle * 6;
+    const yaw = CARD_YAW[i] + ang;
+    const tilt = Math.sin(Math.PI * fp) * 0.045 * (i % 2 ? 1 : -1) + hoverTilt;
     const q = cardQuad(cam, cx, cy, cz, yaw, tilt);
     const front = ang > Math.PI / 2;
     cards.push({
-      i, deal, fp, q, front, fly, gather,
+      i, deal, fp, q, front, fly: 0, gather: 0, settle,
       z: cz - CARD_Z[i],
-      alpha: clamp01((u - 0.18 - i * 0.1) / 0.35) * (1 - smoothstep(5.1, 5.45, u)),
+      alpha: clamp01((u - 0.18 - i * 0.1) / 0.35),
       sweep: fp > 0.05 && fp < 0.98 ? Math.sin(Math.PI * fp) : 0,
     });
   }
   cards.sort((a, b) => b.z - a.z);
+
+  // ---- golden pixel light pillars rising behind the four revealed cards
+  if (settle > 0.01) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) {
+      const q = cardQuad(cam, CARD_X[i], 6, CARD_Z[i], CARD_YAW[i], 0);
+      const cxp = (q[0].x + q[1].x + q[2].x + q[3].x) / 4;
+      const wdt = Math.abs(q[1].x - q[0].x) * 1.15;
+      const g = ctx.createLinearGradient(0, 300, 0, 880);
+      g.addColorStop(0, 'rgba(246,208,110,0)');
+      g.addColorStop(0.35, `rgba(246,208,110,${(0.06 * settle).toFixed(3)})`);
+      g.addColorStop(0.72, `rgba(255,226,150,${(0.14 * settle).toFixed(3)})`);
+      g.addColorStop(1, 'rgba(255,226,150,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(cxp - wdt / 2, 300, wdt, 580);
+      // rising pixel motes inside the pillar
+      const pr = mulberry32(1520 + i);
+      for (let k = 0; k < 26; k++) {
+        const ph = (pr() + u * (0.16 + pr() * 0.22)) % 1;
+        const yy = 860 - ph * 520;
+        const xx = cxp + (pr() - 0.5) * wdt * 0.9;
+        const a = (1 - ph) * 0.5 * settle;
+        ctx.fillStyle = `rgba(255,232,166,${a.toFixed(3)})`;
+        const sz = 1.6 + pr() * 3.2;
+        ctx.fillRect(xx, yy, sz, sz);
+      }
+    }
+    ctx.restore();
+  }
 
   for (const c of cards) {
     if (!c.q || c.alpha <= 0.01) continue;
@@ -794,6 +827,33 @@ function drawCards(ctx, u) {
     ctx.strokeStyle = c.front ? 'rgba(233,200,106,0.9)' : 'rgba(233,200,106,0.55)';
     ctx.lineWidth = 1.6;
     ctx.stroke();
+    // flowing gold light travelling round the border of a settled card
+    if (c.settle > 0.02 && c.front) {
+      const per = [q[0], q[1], q[2], q[3]];
+      const head = (u * 0.42 + c.i * 0.21) % 1;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineCap = 'round';
+      for (let k = 0; k < 44; k++) {
+        const t0 = k / 44, t1 = (k + 1) / 44;
+        let d = Math.abs(t0 - head);
+        d = Math.min(d, 1 - d);
+        const a = Math.pow(Math.max(0, 1 - d * 4.2), 2) * 0.9 * c.settle;
+        if (a < 0.02) continue;
+        const seg = (tt) => {
+          const e = tt * 4;
+          const ei = Math.min(3, Math.floor(e));
+          const f = e - ei;
+          const p0 = per[ei], p1 = per[(ei + 1) % 4];
+          return [p0.x + (p1.x - p0.x) * f, p0.y + (p1.y - p0.y) * f];
+        };
+        const s0 = seg(t0), s1 = seg(t1);
+        ctx.strokeStyle = `rgba(255,233,168,${a.toFixed(3)})`;
+        ctx.lineWidth = 3.2;
+        ctx.beginPath(); ctx.moveTo(s0[0], s0[1]); ctx.lineTo(s1[0], s1[1]); ctx.stroke();
+      }
+      ctx.restore();
+    }
     // specular sweep during the turn
     if (c.sweep > 0.01) {
       ctx.save();
@@ -818,6 +878,20 @@ function drawCards(ctx, u) {
     ctx.lineTo(q[1].x, q[1].y);
     ctx.stroke();
     ctx.restore();
+  }
+  // QA probe: the four revealed cards must stay side by side, all on screen
+  if (u >= 3.0) {
+    for (const c of cards) {
+      const q = c.q;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const p of q) {
+        x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y);
+        x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
+      }
+      KIT.debug.markBox(`s15-card-${c.i}`, x0, y0, x1 - x0, y1 - y0, {
+        role: 'card', front: c.front ? 1 : 0, alpha: +c.alpha.toFixed(3), settle: +c.settle.toFixed(3),
+      });
+    }
   }
   return cards;
 }

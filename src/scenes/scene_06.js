@@ -259,16 +259,18 @@ function paintField(ctx) {
   ctx.restore();
 
   // ------------------------------------------------------------------ stencils
+  // NOTE: this plate used to stencil the *next* era's index (07 / 755 / 奉先)
+  // into the black corner; that tag belongs to era 07 and is drawn there. Here
+  // the corner keeps only an abstract constructivist register mark.
   ctx.save();
-  // a cut stencil plate on the black corner: bone numerals, hard edges
-  ctx.fillStyle = 'rgba(221,212,196,0.96)';
-  KIT.drawText(ctx, '07', 66, 962, {
-    size: 116, font: KIT.FONT.mono, weight: 800, color: 'rgba(221,212,196,0.96)', letterSpacing: -6,
-  });
+  ctx.fillStyle = 'rgba(221,212,196,0.9)';
+  ctx.fillRect(66, 936, 54, 54);
+  ctx.fillStyle = C.black;
+  ctx.fillRect(78, 948, 30, 30);
   ctx.fillStyle = C.red;
-  ctx.fillRect(66, 1018, 126, 7);
-  KIT.drawText(ctx, '755', 70, 1046, { size: 20, font: KIT.FONT.mono, weight: 700, color: 'rgba(221,212,196,0.8)', letterSpacing: 3 });
-  KIT.drawText(ctx, 'ФЭНСЯНЬ / 奉先', 206, 1046, { size: 13, font: KIT.FONT.mono, weight: 500, color: 'rgba(221,212,196,0.55)', letterSpacing: 1.2 });
+  ctx.fillRect(66, 1000, 126, 7);
+  ctx.fillStyle = 'rgba(221,212,196,0.5)';
+  for (let i = 0; i < 4; i++) ctx.fillRect(66 + i * 18, 1016, 10, 3);
   ctx.restore();
 
   // ------------------------------------------------- mechanical scales / rules

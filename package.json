@@ -1,6 +1,6 @@
 {
   "name": "dufu-test",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "description": "《少陵测试》The Du Fu Test — a deterministic 138 s, 18-era, pure-code animated film.",
   "type": "module",
   "private": true,
@@ -13,13 +13,14 @@
     "serve": "node tools/server.mjs 5180",
     "prebake": "node tools/prebake-collapse.mjs",
     "audio": "node audio/synth-score.mjs",
-    "render": "node tools/render.mjs --workers 4 --resume",
-    "encode": "node tools/encode.mjs",
+    "render": "node tools/render.mjs --workers 2 --restartEvery 300 --resume --out output/v6_1_work/frames",
+    "encode": "node tools/encode.mjs --from-frames output/v6_1_work/frames --out output/v6_1_master --tag v6_1",
     "sheet": "node tools/contact-sheet.mjs --eras --out output/v6_pelican_paradigm/contact_sheet_18_eras.png",
     "sheet:beats": "node tools/contact-sheet.mjs",
     "qa": "node tools/qa-gate.mjs",
+    "qa:v6.1": "node tools/qa-v6-1.mjs",
     "delivery": "node tools/delivery-report.mjs",
-    "build": "npm run prebake && npm run audio && npm run render && npm run encode && npm run sheet"
+    "build": "npm run prebake && npm run audio && npm run qa && npm run qa:v6.1 && npm run render && npm run encode && npm run sheet"
   },
   "devEngines": {
     "packageManager": {

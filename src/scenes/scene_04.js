@@ -566,22 +566,28 @@ function drawDuFu(ctx, u, x, z, pose) {
 }
 
 /* ================================================================ edict */
+/**
+ * The decree is a palm-sized cinnabar seal-plaque that quivers under the eave,
+ * NOT a full-width banner. It hangs at y = 230 (h = 110) so the closed vermilion
+ * gate and its gold studs stay legible underneath for the whole beat.
+ */
 function drawEdict(ctx, u) {
   const t = u - 2.06;
   if (t < 0) return;
   const drop = clamp01(t / 0.30);
-  const y = lerp(-360, 300, easeInBack(drop)) + Math.sin(Math.max(0, t - 0.34) * 22) * Math.exp(-Math.max(0, t - 0.34) * 8) * 12;
-  const x = lerp(960, 960, drop);
-  const w = 700, h = 232;
+  const settle = Math.max(0, t - 0.30);
+  const quiver = Math.sin(settle * 26) * Math.exp(-settle * 6.5);
+  const y = 230 + (1 - easeOut(drop)) * -420 + quiver * 7;
+  const w = 560, h = 110;
   ctx.save();
-  ctx.translate(x, y + h / 2);
-  const rot = (1 - easeOut(drop)) * -0.05 + Math.sin(Math.max(0, t - 0.34) * 18) * Math.exp(-Math.max(0, t - 0.34) * 7) * 0.02;
+  ctx.translate(960, y);
+  const rot = (1 - easeOut(drop)) * -0.06 + quiver * 0.026;
   ctx.rotate(rot);
-  // shadow on the gate
+  // shadow into the gate roof
   ctx.save();
-  ctx.globalAlpha = 0.55;
+  ctx.globalAlpha = 0.5;
   ctx.fillStyle = 'rgba(2,8,7,0.9)';
-  ctx.fillRect(-w / 2 + 16, -h / 2 + 22, w, h);
+  ctx.fillRect(-w / 2 + 12, -h / 2 + 16, w, h);
   ctx.restore();
   // the seal: a carved vermilion block
   const g = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
@@ -595,7 +601,7 @@ function drawEdict(ctx, u) {
   const r = mulberry32(hash('s04seal', 3));
   ctx.save();
   ctx.globalCompositeOperation = 'multiply';
-  for (let i = 0; i < 1300; i++) {
+  for (let i = 0; i < 900; i++) {
     const px = -w / 2 + r() * w, py = -h / 2 + r() * h;
     ctx.fillStyle = r() < 0.5 ? `rgba(255,190,150,${(0.03 + r() * 0.1).toFixed(3)})` : `rgba(70,10,6,${(0.04 + r() * 0.14).toFixed(3)})`;
     ctx.fillRect(px, py, 1 + r() * 3, 1 + r() * 2);
@@ -603,25 +609,47 @@ function drawEdict(ctx, u) {
   ctx.restore();
   // gold frame
   ctx.strokeStyle = 'rgba(240,214,140,0.9)';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(-w / 2 + 12, -h / 2 + 12, w - 24, h - 24);
-  ctx.strokeStyle = 'rgba(240,214,140,0.35)';
+  ctx.lineWidth = 2.6;
+  ctx.strokeRect(-w / 2 + 9, -h / 2 + 9, w - 18, h - 18);
+  ctx.strokeStyle = 'rgba(240,214,140,0.3)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(-w / 2 + 22, -h / 2 + 22, w - 44, h - 44);
+  ctx.strokeRect(-w / 2 + 16, -h / 2 + 16, w - 32, h - 32);
   // the decree
-  KIT.drawText(ctx, '诏下，无一人中第', 0, -6, {
-    size: 92, font: KIT.FONT.display, weight: 800, color: '#f6e7c2',
-    align: 'center', letterSpacing: 6,
-    shadow: { color: 'rgba(60,6,4,0.75)', blur: 0, x: 3, y: 4 },
+  KIT.drawText(ctx, '诏下，无一人中第', 0, -8, {
+    size: 47, font: KIT.FONT.display, weight: 800, color: '#f6e7c2',
+    align: 'center', letterSpacing: 4.5,
+    shadow: { color: 'rgba(60,6,4,0.8)', blur: 0, x: 2, y: 3 },
   });
-  KIT.drawText(ctx, 'IMPERIAL DECREE  ·  NOT ONE PASSED  ·  746', 0, 64, {
-    size: 15, font: KIT.FONT.mono, weight: 600, color: 'rgba(246,225,190,0.72)', align: 'center', letterSpacing: 3.6,
+  KIT.drawText(ctx, 'IMPERIAL DECREE · NOT ONE PASSED · 746', 0, 32, {
+    size: 9.5, font: KIT.FONT.mono, weight: 600, color: 'rgba(246,225,190,0.66)', align: 'center', letterSpacing: 2.6,
   });
+  // hairline fractures that open on the impact
+  const cr = smoothstep(2.30, 2.62, u);
+  if (cr > 0.01) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(58,8,5,${(0.75 * cr).toFixed(3)})`;
+    ctx.lineWidth = 1.6;
+    const cracks = [
+      [[-w / 2 + 40, -h / 2 + 6], [-w / 2 + 74, -6], [-w / 2 + 58, 30], [-w / 2 + 96, h / 2 - 6]],
+      [[w / 2 - 48, -h / 2 + 4], [w / 2 - 88, 4], [w / 2 - 70, 38], [w / 2 - 104, h / 2 - 4]],
+      [[-10, h / 2 - 2], [4, 16], [-16, -h / 2 + 3]],
+    ];
+    for (const pts of cracks) {
+      ctx.beginPath();
+      for (let i = 0; i < pts.length; i++) {
+        const k = 0.35 + 0.65 * cr;
+        const px = pts[i][0] * k, py = pts[i][1] * k;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   // chips
   ctx.globalCompositeOperation = 'destination-out';
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 34; i++) {
     const px = -w / 2 + r() * w, py = -h / 2 + r() * h;
-    ctx.beginPath(); ctx.arc(px, py, 0.8 + r() * 3.4, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(px, py, 0.8 + r() * 2.8, 0, TAU); ctx.fill();
   }
   ctx.restore();
   void u;
@@ -779,23 +807,124 @@ function drawCrown(ctx, u) {
   void u;
 }
 
-function drawFloorPhrase(ctx, u, breakP) {
-  const a = smoothstep(0.8, 1.7, u) * (1 - breakP * 0.92);
-  if (a <= 0.01) return;
+/* ============================================================ hero blocks */
+/**
+ * The five core characters of the floor sentence, cut as real 3-D blocks at
+ * 2.2× the tile height (140.8 px world). Each block exposes a bright gold top
+ * face, a lacquered jade front and a shaded side so the TypeField reads as
+ * volume, not as a decal. On the decree impact they quiver and sink.
+ */
+const HERO_TEXT = ['致', '君', '尧', '舜', '上'];
+const HERO_H = 64 * 2.2;          // 140.8
+const HERO_HW = 57;               // half width
+const HERO_HD = 46;               // half depth
+const HERO_Z = 930;
+const HERO_STEP = 128;
+
+function drawHeroBlocks(ctx, u, breakP) {
+  const rise = smoothstep(0.55, 1.75, u);
+  if (rise <= 0.001) return;
+  const imp = u >= 2.06 ? clamp01((u - 2.06) / 0.6) : 0;
+  const quake = u >= 2.06 ? Math.exp(-(u - 2.06) * 5.2) : 0;
   ctx.save();
-  ctx.globalAlpha = a * 0.8;
-  ctx.translate(960, 772 + breakP * 24);
-  ctx.scale(1, 0.55);
-  KIT.drawText(ctx, '致 君 尧 舜 上', 0, 0, {
-    size: 58, font: KIT.FONT.display, weight: 700, color: 'rgba(255,158,94,0.88)',
-    align: 'center', letterSpacing: 17,
-    shadow: { color: 'rgba(255,120,64,0.5)', blur: 18, x: 0, y: 0 },
-  });
-  ctx.globalAlpha = a * 0.5;
-  ctx.fillStyle = 'rgba(212,175,55,0.9)';
-  ctx.fillRect(-340, 44, 680, 2);
+  for (let i = 0; i < HERO_TEXT.length; i++) {
+    const ch = HERO_TEXT[i];
+    const Xc = (i - 2) * HERO_STEP;
+    const local = clamp01((rise - i * 0.07) / 0.55);
+    if (local <= 0.001) continue;
+    // sink and lateral jitter on the decree impact
+    const sink = imp * (0.30 + 0.16 * (i % 3) / 2) * HERO_H;
+    const jx = Math.sin(u * 74 + i * 2.1) * 10 * quake;
+    const jy = Math.cos(u * 63 + i * 1.7) * 8 * quake;
+    const Y0 = -sink;
+    const Hh = HERO_H * local;
+    const Zc = HERO_Z - (2.2 - local) * 60;
+    const a = proj(Xc - HERO_HW, Y0, Zc - HERO_HD);
+    const b = proj(Xc + HERO_HW, Y0, Zc - HERO_HD);
+    const c = proj(Xc + HERO_HW, Y0 + Hh, Zc - HERO_HD);
+    const d = proj(Xc - HERO_HW, Y0 + Hh, Zc - HERO_HD);
+    const bt = proj(Xc + HERO_HW, Y0 + Hh, Zc + HERO_HD);
+    const at = proj(Xc - HERO_HW, Y0 + Hh, Zc + HERO_HD);
+    const bf = proj(Xc + HERO_HW, Y0, Zc + HERO_HD);
+    const af = proj(Xc - HERO_HW, Y0, Zc + HERO_HD);
+    const ox = jx, oy = jy;
+    const shift = (p) => [p[0] + ox, p[1] + oy];
+    if (b[1] > H + 80) continue;
+    ctx.save();
+    ctx.globalAlpha = smoothstep(0, 0.5, local) * (1 - breakP * 0.35);
+    // ---- top face: the sunlit gold plane
+    const topG = ctx.createLinearGradient(at[0], at[1], bt[0], bt[1]);
+    topG.addColorStop(0, 'rgba(250,230,170,0.98)');
+    topG.addColorStop(0.5, 'rgba(226,190,104,0.96)');
+    topG.addColorStop(1, 'rgba(178,140,58,0.94)');
+    quad(ctx, shift(d), shift(c), shift(bt), shift(at), topG);
+    // ---- side face (the one facing the camera axis)
+    const sideG = ctx.createLinearGradient(0, c[1], 0, b[1]);
+    sideG.addColorStop(0, 'rgba(30,84,66,0.99)');
+    sideG.addColorStop(1, 'rgba(4,18,14,0.99)');
+    if (Xc < 0) quad(ctx, shift(b), shift(bf), shift(bt), shift(c), sideG);
+    else quad(ctx, shift(a), shift(af), shift(at), shift(d), sideG);
+    // ---- front face: lacquered jade
+    const frontG = ctx.createLinearGradient(a[0], d[1], b[0], a[1]);
+    frontG.addColorStop(0, '#17493b');
+    frontG.addColorStop(0.42, '#0d2f27');
+    frontG.addColorStop(1, '#071c17');
+    quad(ctx, shift(a), shift(b), shift(c), shift(d), frontG);
+    // gold rim
+    ctx.strokeStyle = 'rgba(236,205,132,0.92)';
+    ctx.lineWidth = 2.1;
+    ctx.beginPath();
+    ctx.moveTo(a[0] + ox, a[1] + oy); ctx.lineTo(b[0] + ox, b[1] + oy);
+    ctx.lineTo(c[0] + ox, c[1] + oy); ctx.lineTo(d[0] + ox, d[1] + oy);
+    ctx.closePath(); ctx.stroke();
+    // seam highlight on the top-front edge
+    ctx.strokeStyle = 'rgba(255,246,214,0.75)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(d[0] + ox, d[1] + oy); ctx.lineTo(c[0] + ox, c[1] + oy);
+    ctx.stroke();
+    // the glyph, struck on the front plane (no perspective shear: it is parallel)
+    const fw = Math.abs(b[0] - a[0]);
+    const fh = Math.abs(a[1] - d[1]);
+    if (fw > 18 && fh > 18) {
+      const gs = Math.min(fw, fh) * 0.78;
+      KIT.drawText(ctx, ch, (a[0] + b[0]) / 2 + ox, (a[1] + d[1]) / 2 + oy, {
+        size: gs, font: KIT.FONT.display, weight: 800, color: 'rgba(250,232,182,0.97)',
+        align: 'center',
+        shadow: { color: 'rgba(255,214,130,0.55)', blur: 10, x: 0, y: 0 },
+      });
+      if (imp > 0.25) {
+        // fracture across the face
+        ctx.strokeStyle = `rgba(226,120,70,${(0.7 * imp).toFixed(3)})`;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(a[0] + fw * 0.18 + ox, a[1] - fh * 0.12 + oy);
+        ctx.lineTo(a[0] + fw * 0.46 + ox, a[1] - fh * 0.6 + oy);
+        ctx.lineTo(a[0] + fw * 0.38 + ox, a[1] - fh * 0.95 + oy);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   ctx.restore();
-  markText('s04-zhi', '致君尧舜上', 650, 740, 620, 90, { size: 58, align: 'center' });
+  // a gold rule on the floor under the block row
+  const ruleA = smoothstep(0.9, 1.8, u) * (1 - breakP);
+  if (ruleA > 0.01) {
+    const p0 = proj(-2 * HERO_STEP - HERO_HW - 30, 0, HERO_Z);
+    const p1 = proj(2 * HERO_STEP + HERO_HW + 30, 0, HERO_Z);
+    ctx.save();
+    ctx.globalAlpha = ruleA * 0.7;
+    ctx.strokeStyle = 'rgba(232,196,116,0.8)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(p0[0], p0[1] - 4); ctx.lineTo(p1[0], p1[1] - 4); ctx.stroke();
+    ctx.restore();
+  }
+  const bx0 = proj(-2 * HERO_STEP - HERO_HW, 0, HERO_Z)[0];
+  const bx1 = proj(2 * HERO_STEP + HERO_HW, 0, HERO_Z)[0];
+  const bTop = proj(0, HERO_H, HERO_Z - HERO_HD)[1];
+  const bBot = proj(0, 0, HERO_Z - HERO_HD)[1];
+  markText('s04-zhi', '致君尧舜上', bx0, bTop, bx1 - bx0, bBot - bTop,
+    { size: Math.round(HERO_H), align: 'center', color: '#f0dda4' });
 }
 
 /* ================================================================ render */
@@ -820,7 +949,7 @@ export function renderAt(ctx, u, beat, env = {}) {
 
   const breakP = smoothstep(4.12, 5.2, u);
   drawTypeField(ctx, u, breakP);
-  drawFloorPhrase(ctx, u, breakP);
+  drawHeroBlocks(ctx, u, breakP);
 
   // ---- Du Fu
   const walk = smoothstep(0.0, 2.05, u);
@@ -882,8 +1011,8 @@ export function renderAt(ctx, u, beat, env = {}) {
 
   // QA marks
   if (u >= 2.36) {
-    markText('s04-edict', '诏下，无一人中第', 610, 300, 700, 232,
-      { size: 92, align: 'center', color: '#f6e7c2' });
+    markText('s04-edict', '诏下，无一人中第', 680, 175, 560, 110,
+      { size: 47, align: 'center', color: '#f6e7c2' });
   }
   void beat; void env;
 }

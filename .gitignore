@@ -67,3 +67,12 @@ output/v6_pelican_paradigm/*.mp4
 output/v6_pelican_paradigm/contact_sheet_*.png
 output/v6_stills/
 
+# ---- V6.1 外科精修（8,280 帧 ≈ 2.6GB 只留本地；QA 报告入库） ----
+output/v6_1_work/
+output/v6_1_base/
+output/v6_1_chk/
+output/v6_1_final_check/
+output/v6_1_master/*.mp4
+output/v6_1_qa/*
+!output/v6_1_qa/qa_v6_1_report.json
+

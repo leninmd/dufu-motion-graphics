@@ -174,6 +174,14 @@ function silkFrame(ctx, u) {
 }
 
 /* ============================================================ wind field */
+/**
+ * Every ribbon spine is confined to the printable band [185, 960]. The top
+ * register (「开元十九年 · 吴越壮游」) and the lower caption rules are therefore
+ * never cut by a brush stroke, at any u.
+ */
+const Y_MIN = 185;
+const Y_MAX = 960;
+
 function fieldAngle(x, y, t, k) {
   const n1 = KIT.fbm2(x * 0.0017 + t * 0.12, y * 0.0017 - t * 0.05, 4, 71 + (k % 7));
   const n2 = KIT.noise2(x * 0.0062 - t * 0.22, y * 0.0062 + 3.1, 92 + (k % 5));
@@ -187,10 +195,20 @@ function fieldAngle(x, y, t, k) {
 function traceRibbon(x, y, n, step, t, k, curl) {
   const pts = [[x, y]];
   let px = x, py = y;
+  let ang = fieldAngle(px, py, t, k);
   for (let i = 0; i < n; i++) {
-    const a = fieldAngle(px, py, t, k) + Math.sin(i * 0.22 + k) * curl;
-    px += Math.cos(a) * step;
-    py += Math.sin(a) * step * 0.85;
+    // low-pass the field: a brush stroke bends, it never kinks like a ruler
+    const live = fieldAngle(px, py, t, k) + Math.sin(i * 0.19 + k * 1.31) * curl * 1.5;
+    ang = lerp(ang, live, 0.26);
+    // long calligraphic S-swell under the field angle
+    const sway = Math.sin(i * 0.105 + k * 0.9) * (0.15 + curl * 0.4);
+    // soft walls: the stroke curves away from the register band instead of
+    // being chopped by it
+    if (py < Y_MIN + 70) ang += (1 - (py - Y_MIN) / 70) * 0.34;
+    else if (py > Y_MAX - 70) ang -= (1 - (Y_MAX - py) / 70) * 0.34;
+    px += Math.cos(ang + sway) * step;
+    py += Math.sin(ang + sway) * step * 0.85 + Math.cos(i * 0.085 + k) * step * curl * 0.3;
+    py = py < Y_MIN ? Y_MIN : py > Y_MAX ? Y_MAX : py;
     pts.push([px, py]);
   }
   return pts;
@@ -205,17 +223,18 @@ function buildRibbons() {
   RIBBONS = [];
   for (let i = 0; i < 48; i++) {
     let a0;
-    if (i < 26) a0 = { x: -90 - r() * 320, y: -60 + (i / 26) * 1200 + r() * 30 };
-    else if (i < 34) a0 = { x: 180 + ((i - 26) / 8) * 1500, y: -130 - r() * 300 };
-    else if (i < 41) a0 = { x: 260 + ((i - 34) / 7) * 1400, y: 1210 + r() * 220 };
-    else a0 = { x: 2000 + r() * 300, y: 120 + ((i - 41) / 7) * 860 };
+    // anchors live inside the band so no stroke is born above the title rule
+    if (i < 26) a0 = { x: -90 - r() * 320, y: Y_MIN + 40 + (i / 26) * (Y_MAX - Y_MIN - 80) + r() * 26 };
+    else if (i < 34) a0 = { x: 180 + ((i - 26) / 8) * 1500, y: Y_MIN + 30 + r() * 110 };
+    else if (i < 41) a0 = { x: 260 + ((i - 34) / 7) * 1400, y: Y_MAX - 40 - r() * 120 };
+    else a0 = { x: 2000 + r() * 300, y: Y_MIN + 30 + ((i - 41) / 7) * 660 };
     RIBBONS.push({
       i,
       x0: a0.x, y0: a0.y,
       n: 30 + Math.floor(r() * 16),
       step: 34 + r() * 30,
       width: i % 6 === 0 ? 30 + r() * 16 : i % 3 === 0 ? 15 + r() * 12 : 4 + r() * 9,
-      curl: 0.06 + r() * 0.2,
+      curl: 0.16 + r() * 0.34,
       phase: r() * TAU,
       speed: 0.45 + r() * 1.15,
       delay: r() * 0.6,
@@ -261,6 +280,7 @@ function drawRibbons(ctx, u) {
   const ribbons = buildRibbons();
   const compress = smoothstep(2.0, 2.66, u);
   const release = smoothstep(4.05, 5.1, u);
+  let bandMin = Infinity, bandMax = -Infinity;
   // bar 3: everything sweeps right and out
   for (const rb of ribbons) {
     const base = ribbonSpine(rb, u);
@@ -275,15 +295,23 @@ function drawRibbons(ctx, u) {
       const rr = easeInOut(release);
       spine = spine.map((p, i) => {
         const q = i / (spine.length - 1);
-        return [p[0] + q * q * 1350 * rr, p[1] - q * 190 * rr + Math.sin(u * 3 + rb.phase + q * 5) * 42 * rr];
+        const y = p[1] + Math.sin(u * 3 + rb.phase + q * 5) * 42 * rr;
+        return [p[0] + q * q * 1350 * rr, y < Y_MIN ? Y_MIN : y > Y_MAX ? Y_MAX : y];
       });
     }
     const w = rb.width * (1 - 0.3 * compress) * (1 + release * 0.4);
-    const alpha = (0.94 - 0.56 * compress) * (1 - release * 0.9);
+    // the field gives way faster than the writing arrives, so the two never sit
+    // half-visible on top of each other (that overlap read as a ghost)
+    const alpha = (0.94 - 0.80 * compress) * (1 - release * 0.9);
+    for (const p of spine) {
+      if (p[1] < bandMin) bandMin = p[1];
+      if (p[1] > bandMax) bandMax = p[1];
+    }
     const prof = (p) => {
-      const taper = Math.pow(Math.sin(Math.PI * clamp01(p * 0.92 + 0.04)), 0.34);
+      // brush pressure: thin entry, full belly, thin exit (真 taper, not a bar)
+      const taper = Math.pow(Math.sin(Math.PI * clamp01(p * 0.93 + 0.035)), 0.82);
       const swell = 0.72 + 0.42 * Math.sin(p * 5.4 + rb.phase) + 0.16 * Math.sin(p * 13 + rb.phase * 2);
-      return Math.max(0.8, w * taper * swell);
+      return Math.max(0.6, w * taper * swell);
     };
     inkRibbon(ctx, spine, prof, { color: INK, alpha, seed: rb.i + 3, dry: 3, width: w });
     // a dry second pass riding the centre of the wide ribbons
@@ -291,10 +319,8 @@ function drawRibbons(ctx, u) {
       ctx.save();
       ctx.beginPath();
       for (let i = 0; i < spine.length; i++) {
-        const q = i / (spine.length - 1);
         const p = spine[i];
         if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
-        void q;
       }
       ctx.strokeStyle = `rgba(247,244,235,${(0.24 * alpha).toFixed(3)})`;
       ctx.lineWidth = 1.6;
@@ -302,30 +328,37 @@ function drawRibbons(ctx, u) {
       ctx.stroke();
       ctx.restore();
     }
-    // the ribbon's tail: two hair-fine tendrils trailing off the tip
+    // the ribbon's tail: two hair-fine tendrils that continue the S, never a
+    // straight mechanical whisker
     if (rb.width > 14) {
       const tip = spine[spine.length - 1];
       const prev = spine[spine.length - 3] || tip;
       const dx = tip[0] - prev[0], dy = tip[1] - prev[1];
       const l = Math.hypot(dx, dy) || 1;
+      const bend = Math.sin(rb.phase + u * 2.4) * 0.5;
       for (let k = 0; k < 2; k++) {
         const off = (k - 0.5) * 9;
+        const ux = dx / l, uy = dy / l;
         const q = [
           [tip[0], tip[1]],
-          [tip[0] + dx * 1.6 - (dy / l) * off, tip[1] + dy * 1.6 + (dx / l) * off],
-          [tip[0] + dx * 3.4 - (dy / l) * off * 2.2, tip[1] + dy * 3.4 + (dx / l) * off * 2.2],
+          [tip[0] + ux * 34 - uy * (off + bend * 16), tip[1] + uy * 34 + ux * (off + bend * 16)],
+          [tip[0] + ux * 74 - uy * (off * 1.8 - bend * 30), tip[1] + uy * 74 + ux * (off * 1.8 - bend * 30)],
+          [tip[0] + ux * 118 + (k - 0.5) * 12, tip[1] + uy * 118 + Math.cos(rb.phase) * 10],
         ];
         const sm = KIT.smoothPath(q, 6);
         ctx.beginPath();
         ctx.moveTo(sm[0][0], sm[0][1]);
         for (let z = 1; z < sm.length; z++) ctx.lineTo(sm[z][0], sm[z][1]);
-        ctx.strokeStyle = `rgba(35,28,20,${(0.55 * alpha).toFixed(3)})`;
+        ctx.strokeStyle = `rgba(35,28,20,${(0.42 * alpha).toFixed(3)})`;
         ctx.lineWidth = 1.3 + k * 0.5;
         ctx.lineCap = 'round';
         ctx.stroke();
       }
     }
   }
+  KIT.debug.markBox('s02-ink-band', 0, bandMin, W, bandMax - bandMin, {
+    role: 'ink-band', minY: +bandMin.toFixed(2), maxY: +bandMax.toFixed(2),
+  });
 }
 
 /* ================================================================ the horse */
@@ -637,6 +670,27 @@ export function renderAt(ctx, u, beat, env = {}) {
   // ---- ribbons
   drawRibbons(ctx, u);
 
+  // ---- feathered Xuan paper veil over the top register. The spines are
+  // already clamped to y ≥ 185; this second skin guarantees the title and its
+  // subtitle always sit on clean silk, never on a passing stroke.
+  {
+    const veilP = smoothstep(0.15, 0.9, u);
+    if (veilP > 0.001) {
+      ctx.save();
+      ctx.globalAlpha = veilP;
+      ctx.translate(796, 104);
+      ctx.scale(300, 112);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      g.addColorStop(0, 'rgba(246,242,232,0.97)');
+      g.addColorStop(0.66, 'rgba(246,242,232,0.9)');
+      g.addColorStop(0.88, 'rgba(246,242,232,0.42)');
+      g.addColorStop(1, 'rgba(246,242,232,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // ---- horse + rider (lower left → centre)
   const rideX = lerp(330, 790, easeInOut(smoothstep(0.2, 4.8, u)));
   const rideY = 1046;
@@ -698,15 +752,16 @@ export function renderAt(ctx, u, beat, env = {}) {
   ctx.restore();
 
   // ---- the writing: comes out of the compressed field
-  const typeP = smoothstep(2.32, 2.78, u);
+  const typeP = smoothstep(2.30, 2.62, u);
   if (typeP > 0) {
     ctx.save();
     ctx.globalAlpha = typeP * (1 - 0.25 * smoothstep(4.6, 5.6, u));
     ctx.drawImage(type, T_X - T_SIZE * 0.05, T_MASK_Y);
-    // a wet halo of ink wicked into the silk
+    // wet ink wicked into the silk — same registration, no offset copy, so the
+    // glyphs never acquire a second ghost edge as they fade in
     ctx.globalCompositeOperation = 'multiply';
-    ctx.globalAlpha = typeP * 0.22;
-    ctx.drawImage(type, T_X - T_SIZE * 0.05 - 2, T_MASK_Y - 1, 1200 * 1.004, 340 * 1.006);
+    ctx.globalAlpha = typeP * 0.16;
+    ctx.drawImage(type, T_X - T_SIZE * 0.05, T_MASK_Y);
     ctx.restore();
     drawTendrils(ctx, u);
   }

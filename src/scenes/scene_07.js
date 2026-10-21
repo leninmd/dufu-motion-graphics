@@ -445,21 +445,86 @@ function drawTraveller(ctx, u) {
   ctx.restore();
 }
 
+/**
+ * The chasm is part of the typesetting. 【国破】 is cut into the left board and
+ * 【山河在】 into the right one, each clipped by its own lip of the abyss; on
+ * every tape-skip beat the two halves kick apart, with an 18 px vertical fault
+ * between them.
+ */
+function drawSplitCouplet(ctx, u, gap) {
+  const p = smoothstep(3.24, 3.72, u);
+  if (p <= 0.001) return;
+  const t = Math.max(0, u - 3.24);
+  const beatQ = Math.pow(1 - ((u % 0.5) / 0.5), 3);
+  const q = Math.exp(-t * 2.2) + beatQ * 0.65;
+  const leftEdge = W / 2 - gap - 8;
+  const rightEdge = W / 2 + gap + 8;
+  const CW = 130, CH = 152;
+  const cy = 620;
+  const drawCard = (cx, ch, seed) => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((seed % 2 ? 1 : -1) * 0.014);
+    ctx.globalAlpha = p;
+    ctx.fillStyle = 'rgba(246,236,214,0.97)';
+    roughRect(ctx, -CW / 2, -CH / 2, CW, CH, { seed: 820 + seed, jitter: 3.2, steps: 12 });
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(182,43,34,0.95)';
+    ctx.lineWidth = 6;
+    roughRect(ctx, -CW / 2 + 6, -CH / 2 + 6, CW - 12, CH - 12, { seed: 830 + seed, jitter: 2.2, steps: 10 });
+    ctx.stroke();
+    KIT.drawText(ctx, ch, 0, 0, {
+      size: 112, font: KIT.FONT.display, weight: 900, color: '#171310', align: 'center',
+    });
+    ctx.restore();
+  };
+  // ---- left board (read left→right: 国 then 破, pressed against the lip)
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, leftEdge, H); ctx.clip();
+  ctx.translate(-16 * q, -9 * q);
+  for (let i = 0; i < 2; i++) drawCard(leftEdge - CW / 2 - i * (CW + 6), ['国', '破'][1 - i], i);
+  ctx.restore();
+  // ---- right board
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rightEdge, 0, W - rightEdge, H); ctx.clip();
+  ctx.translate(16 * q, 9 * q);
+  for (let i = 0; i < 3; i++) drawCard(rightEdge + CW / 2 + i * (CW + 6), ['山', '河', '在'][i], 10 + i);
+  ctx.restore();
+  markText('s07-split-left', '国破', leftEdge - 2 * CW - 6, cy - CH / 2, 2 * CW + 6, CH, { size: 112, align: 'right', color: '#171310' });
+  markText('s07-split-right', '山河在', rightEdge, cy - CH / 2, 3 * CW + 12, CH, { size: 112, align: 'left', color: '#171310' });
+  KIT.debug.markBox('s07-crack', W / 2 - gap, 0, gap * 2, H, { gap, role: 'abyss' });
+  void u;
+}
+
+/** The xuan-paper nameplate spanning the chasm, carrying the whole couplet. */
 function drawBarThree(ctx, u) {
-  if (u < 4.25) return;
-  const p = smoothstep(4.25, 4.7, u);
+  if (u < 4.18) return;
+  const p = smoothstep(4.18, 4.62, u);
   ctx.save();
   ctx.globalAlpha = p;
-  ctx.fillStyle = 'rgba(9,7,5,0.52)';
-  ctx.fillRect(330, 744, 1260, 130);
-  KIT.drawText(ctx, '国破山河在，城春草木深。', 960, 790, {
-    size: 56, font: KIT.FONT.brush, weight: 400, color: 'rgba(234,220,193,0.94)', align: 'center', letterSpacing: 5,
-    mark: 's07-poem', shadow: { color: 'rgba(0,0,0,0.6)', blur: 8, x: 0, y: 3 },
+  const px = 366, py = 842, pw = 1188, ph = 78;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = 22;
+  ctx.shadowOffsetY = 6;
+  ctx.fillStyle = 'rgba(246,237,217,0.98)';
+  roughRect(ctx, px, py, pw, ph, { seed: 860, jitter: 3, steps: 16 });
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(182,43,34,0.85)';
+  ctx.lineWidth = 2.4;
+  roughRect(ctx, px + 7, py + 7, pw - 14, ph - 14, { seed: 861, jitter: 1.8, steps: 12 });
+  ctx.stroke();
+  ctx.fillStyle = '#171310';
+  KIT.drawText(ctx, '国破山河在，城春草木深。', 906, py + 33, {
+    size: 38, font: KIT.FONT.brush, weight: 400, color: '#171310', align: 'center', letterSpacing: 4,
+    mark: 's07-poem',
   });
-  KIT.drawText(ctx, '—— 杜甫《春望》· 757', 960, 842, {
-    size: 13, font: KIT.FONT.serif, weight: 500, color: 'rgba(218,201,173,0.64)', align: 'center', letterSpacing: 2.2,
+  KIT.drawText(ctx, '—— 杜甫《春望》· 757', 1380, py + 54, {
+    size: 13, font: KIT.FONT.serif, weight: 500, color: 'rgba(86,30,22,0.78)', align: 'center', letterSpacing: 1.8,
   });
   ctx.restore();
+  KIT.debug.markBox('s07-nameplate', px, py, pw, ph, { role: 'nameplate', y: py });
 }
 
 function drawTapeReadout(ctx, u) {
@@ -527,6 +592,8 @@ export function renderAt(ctx, u, beat, env = {}) {
 
   glitchComposite(ctx, u);
   drawAbyss(ctx, u);
+  const gap = 32 + smoothstep(3.0, 3.55, u) * 92;
+  drawSplitCouplet(ctx, u, gap);
   drawBarThree(ctx, u);
 
   ctx.save();

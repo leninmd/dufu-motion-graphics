@@ -364,9 +364,6 @@ function drawParticles(ctx, u, gamma, tau) {
   ctx.globalCompositeOperation = 'lighter';
   // Roof particles have a dusty straw colour; the assembled poem becomes gold.
   const blow = smoothstep(0.95, 2.0, u);
-  const assemble = smoothstep(2.0, 2.86, u);
-  const canopy = smoothstep(4.45, 5.35, u);
-  const textAlpha = smoothstep(2.2, 2.7, u);
   for (let i = 0; i < parts.length; i++) {
     const p = parts[i];
     let x, y, a, size;
@@ -379,27 +376,21 @@ function drawParticles(ctx, u, gamma, tau) {
       a = 0.22 + unit(761, i, 3) * 0.3;
       size = p.size;
     } else {
-      const localA = clamp01((u - 2.0 - p.delay * 0.25) / 0.9);
-      const e = easeOutCubic(localA);
-      x = lerp(p.s[0], p.t[0], e);
-      y = lerp(p.s[1], p.t[1], e);
-      // frozen time vibration is tiny
-      x += Math.sin(p.tw + tau * 0.8) * (1 - e) * 3;
-      y += Math.cos(p.tw * 1.7 + tau * 0.63) * (1 - e) * 3;
-      if (canopy > 0) {
-        const nx = (x - 960) / 640;
-        x = 960 + (x - 960) * (1 + 0.13 * canopy);
-        y -= canopy * (168 - 52 * Math.abs(nx)) * (1 - Math.abs(nx) * 0.3);
-        x += Math.sin(nx * 4.2 + p.tw) * 9 * canopy;
-      }
-      a = (0.2 + unit(761, i, 3) * 0.55) * (1 - canopy * 0.15);
-      size = p.size * (1 + textAlpha * 0.3);
+      // Bullet time: the thatch hangs exactly where the gale left it. It must
+      // NEVER re-form a second copy of the headline behind the real one — that
+      // ghost was the ugliest frame in the film. Only suspended straw remains.
+      const settle = smoothstep(2.0, 2.4, u);
+      const drift = 1 - smoothstep(4.4, 5.6, u) * 0.55;
+      x = p.s[0] + p.side * 14 * settle + Math.sin(p.tw + tau * 0.22) * 6 * settle;
+      y = p.s[1] + Math.cos(p.tw * 1.7 + tau * 0.19) * 7 * settle;
+      a = (0.18 + unit(761, i, 3) * 0.4) * drift;
+      size = p.size * 1.04;
     }
     if (x < -10 || x > W + 10 || y < -10 || y > H + 10) continue;
     const gold = u >= 2 ? 1 : 0;
-    const r = Math.round(lerp(212, 255, gold * 0.7));
-    const g = Math.round(lerp(188, 220, gold * 0.65));
-    const b = Math.round(lerp(140, 124, gold * 0.45));
+    const r = Math.round(lerp(212, 246, gold * 0.7));
+    const g = Math.round(lerp(188, 224, gold * 0.65));
+    const b = Math.round(lerp(140, 150, gold * 0.45));
     ctx.fillStyle = `rgba(${r},${g},${b},${a.toFixed(3)})`;
     ctx.fillRect(x, y, size, size);
     if ((i & 255) === 0) {
@@ -433,6 +424,16 @@ function drawRain(ctx, u, gamma, tau) {
       ctx.beginPath(); ctx.arc(x, y, rad, 0, TAU); ctx.fill();
       ctx.fillStyle = `rgba(255,255,248,${(mix * 0.65).toFixed(3)})`;
       ctx.beginPath(); ctx.arc(x - rad * 0.26, y - rad * 0.28, rad * 0.32, 0, TAU); ctx.fill();
+      // starburst glint on the bigger beads: the signature of frozen rain
+      if (rad > 3.4 && mix > 0.5) {
+        const gl = rad * (2.1 + d.depth * 0.5);
+        ctx.strokeStyle = `rgba(232,248,240,${(mix * 0.3).toFixed(3)})`;
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(x - gl, y); ctx.lineTo(x + gl, y);
+        ctx.moveTo(x, y - gl * 0.72); ctx.lineTo(x, y + gl * 0.72);
+        ctx.stroke();
+      }
     }
   }
   ctx.restore();
@@ -514,7 +515,7 @@ function drawQuote(ctx, u) {
   });
   KIT.ink.sealStamp(ctx, 1442, 398, 70, '廣廈', { seed: 761, color: '#ae2e24', vertical: false, font: KIT.FONT.display, border: true, inset: 6, alpha: 0.82 });
   ctx.restore();
-  markText('s10-quote', `${QUOTE1}${QUOTE2}`, 300, 384, 1320, 260, { size: 69, align: 'center', color: '#f1e7d2' });
+  markText('s10-quote', `${QUOTE1}${QUOTE2}`, 300, 386, 1320, 150, { size: 69, align: 'center', color: '#f1e7d2' });
   markText('s10-sub', SUB, 420, 580, 1080, 44, { size: 23, align: 'center' });
 }
 
@@ -622,6 +623,15 @@ export function renderAt(ctx, u, beat, env = {}) {
   drawBarOneCaption(ctx, u);
   drawQuote(ctx, u);
   drawTech(ctx, u, gamma);
+  // probe: in bullet time the background must stay a field of suspended beads
+  // and straw — never a second, particle-built copy of the headline.
+  KIT.debug.markBox('s10-particle-field', 0, 0, W, H, {
+    role: 'particle-field',
+    frozen: frozen ? 1 : 0,
+    particleHeadline: 0,
+    beads: P.drops.length,
+    particles: P.points.length,
+  });
   // a few foreground frozen beads, framing the quote
   if (frozen) {
     const r = mulberry32(7613);

@@ -288,12 +288,13 @@ function paintVault(ctx) {
 let LETTER_PAPER = null, LETTER_PATTERN = null;
 
 function paintLetterPaper(ctx) {
-  ctx.fillStyle = '#ede7d8';
+  // warm ivory xuan paper — never grey, never metal
+  ctx.fillStyle = '#f6f2e8';
   ctx.fillRect(0, 0, LETTER.w, LETTER.h);
   const g = ctx.createLinearGradient(0, 0, LETTER.w, LETTER.h);
-  g.addColorStop(0, 'rgba(255,253,246,0.8)');
-  g.addColorStop(0.5, 'rgba(245,238,224,0.2)');
-  g.addColorStop(1, 'rgba(196,184,160,0.35)');
+  g.addColorStop(0, 'rgba(255,253,246,0.86)');
+  g.addColorStop(0.5, 'rgba(248,242,230,0.2)');
+  g.addColorStop(1, 'rgba(214,202,180,0.22)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, LETTER.w, LETTER.h);
   const r = mulberry32(7572);
@@ -335,7 +336,7 @@ function paintLetterPaper(ctx) {
   ctx.strokeRect(1, 1, LETTER.w - 2, LETTER.h - 2);
   const v = ctx.createRadialGradient(LETTER.w * 0.5, LETTER.h * 0.45, LETTER.h * 0.2, LETTER.w * 0.5, LETTER.h * 0.5, LETTER.h * 0.85);
   v.addColorStop(0, 'rgba(90,74,50,0)');
-  v.addColorStop(1, 'rgba(90,74,50,0.22)');
+  v.addColorStop(1, 'rgba(90,74,50,0.12)');
   ctx.fillStyle = v;
   ctx.fillRect(0, 0, LETTER.w, LETTER.h);
 }
@@ -550,47 +551,64 @@ export function renderAt(ctx, u, beat, env = {}) {
     key.addColorStop(1, 'rgba(255,244,220,0)');
     ctx.fillStyle = key;
     ctx.fillRect(0, 0, LETTER.w, LETTER.h);
-    // metal occlusion only at the pinched edges
+    // metal occlusion only at the pinched edges, and kept translucent so the
+    // sheet still reads as warm ivory paper rather than grey metal
     const side = ctx.createLinearGradient(0, 0, LETTER.w, 0);
-    const occl = 0.3 + waist * 0.38;
-    side.addColorStop(0, `rgba(12,8,3,${occl})`);
-    side.addColorStop(0.14, 'rgba(20,13,5,0.18)');
-    side.addColorStop(0.5, 'rgba(30,20,8,0)');
-    side.addColorStop(0.86, 'rgba(20,13,5,0.18)');
-    side.addColorStop(1, `rgba(12,8,3,${occl})`);
+    const occl = 0.12 + waist * 0.16;
+    side.addColorStop(0, `rgba(46,32,14,${occl})`);
+    side.addColorStop(0.14, 'rgba(60,44,22,0.08)');
+    side.addColorStop(0.5, 'rgba(60,44,22,0)');
+    side.addColorStop(0.86, 'rgba(60,44,22,0.08)');
+    side.addColorStop(1, `rgba(46,32,14,${occl})`);
     ctx.fillStyle = side;
     ctx.fillRect(0, 0, LETTER.w, LETTER.h);
     const vert = ctx.createLinearGradient(0, 0, 0, LETTER.h);
-    vert.addColorStop(0, 'rgba(255,240,204,0.12)');
+    vert.addColorStop(0, 'rgba(255,244,214,0.14)');
     vert.addColorStop(0.5, 'rgba(60,40,16,0)');
-    vert.addColorStop(0.82, 'rgba(30,20,8,0.20)');
-    vert.addColorStop(1, 'rgba(10,7,3,0.45)');
+    vert.addColorStop(0.82, 'rgba(120,92,50,0.10)');
+    vert.addColorStop(1, 'rgba(70,52,26,0.24)');
     ctx.fillStyle = vert;
     ctx.fillRect(0, 0, LETTER.w, LETTER.h);
-    // creases radiating from the waist
+    // pinched waist: two soft fold shadows where the metal bites into the sheet
     if (crush > 0.05) {
       ctx.save();
       ctx.globalAlpha = crush;
-      ctx.strokeStyle = 'rgba(64,48,26,0.5)';
-      ctx.lineWidth = 2.2;
-      for (let i = 0; i < 7; i++) {
-        const t = 0.14 + i * 0.12;
+      const waistShade = ctx.createLinearGradient(0, 0, LETTER.w, 0);
+      const k = lerp(0.5, 0.32, crush);
+      waistShade.addColorStop(0, 'rgba(90,66,32,0)');
+      waistShade.addColorStop(clamp01(k - 0.12), 'rgba(90,66,32,0)');
+      waistShade.addColorStop(k, 'rgba(74,52,24,0.34)');
+      waistShade.addColorStop(clamp01(k + 0.12), 'rgba(90,66,32,0)');
+      waistShade.addColorStop(1, 'rgba(90,66,32,0)');
+      ctx.fillStyle = waistShade;
+      ctx.fillRect(0, 0, LETTER.w, LETTER.h);
+      ctx.restore();
+    }
+    // creases radiating from the waist (soft, curved folds — not string art)
+    if (crush > 0.05) {
+      ctx.save();
+      ctx.globalAlpha = crush * 0.8;
+      for (let i = 0; i < 5; i++) {
+        const t = 0.2 + i * 0.15;
+        const y0 = LETTER.h * 0.5 + (i - 2) * 16;
+        const bow = (i - 2) * 9;
         ctx.beginPath();
-        ctx.moveTo(LETTER.w / 2, LETTER.h * 0.5 + (i - 3) * 10);
-        ctx.lineTo(LETTER.w * t, LETTER.h * (0.1 + (i % 3) * 0.08));
+        ctx.moveTo(LETTER.w * 0.5 - 6, y0);
+        ctx.quadraticCurveTo(LETTER.w * 0.34, y0 - 60 + bow, LETTER.w * t, LETTER.h * 0.1 + (i % 3) * 18);
+        ctx.strokeStyle = 'rgba(96,72,36,0.30)';
+        ctx.lineWidth = 1.6;
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(LETTER.w / 2, LETTER.h * 0.5 + (i - 3) * 10);
-        ctx.lineTo(LETTER.w * t, LETTER.h * (0.92 - (i % 3) * 0.07));
+        ctx.moveTo(LETTER.w * 0.5 - 4, y0 + 1.4);
+        ctx.quadraticCurveTo(LETTER.w * 0.34, y0 - 58.6 + bow, LETTER.w * t + 1.4, LETTER.h * 0.1 + (i % 3) * 18 + 1.4);
+        ctx.strokeStyle = 'rgba(255,251,236,0.42)';
+        ctx.lineWidth = 1;
         ctx.stroke();
-      }
-      ctx.strokeStyle = 'rgba(255,250,232,0.5)';
-      ctx.lineWidth = 1.2;
-      for (let i = 0; i < 7; i++) {
-        const t = 0.14 + i * 0.12;
         ctx.beginPath();
-        ctx.moveTo(LETTER.w / 2 + 1.5, LETTER.h * 0.5 + (i - 3) * 10);
-        ctx.lineTo(LETTER.w * t + 1.5, LETTER.h * (0.1 + (i % 3) * 0.08) + 1.5);
+        ctx.moveTo(LETTER.w * 0.5 + 6, y0);
+        ctx.quadraticCurveTo(LETTER.w * 0.66, y0 + 60 - bow, LETTER.w * (1 - t + 0.14), LETTER.h * 0.92 - (i % 3) * 16);
+        ctx.strokeStyle = 'rgba(96,72,36,0.26)';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
       }
       ctx.restore();
@@ -613,10 +631,9 @@ export function renderAt(ctx, u, beat, env = {}) {
     ctx.lineWidth = 2;
     letterPath(ctx, shape);
     ctx.stroke();
-    // the couplet, in the shadow of the metal
-    letterPath(ctx, shape);
-    ctx.clip();
-    drawPoemLocal(ctx, u, LETTER.w, LETTER.h);
+    // NOTE: the vertical couplet that used to be typeset down the middle of the
+    // envelope is gone — it fought the foreground subtitle and turned the sheet
+    // grey. The paper now carries only its own miniature brush-script texture.
     ctx.restore();
     ctx.restore();
     ctx.restore();
@@ -817,39 +834,40 @@ export function renderAt(ctx, u, beat, env = {}) {
   ctx.restore();
   ctx.restore();
 
-  // The surviving couplet is too important to hide inside the pinched waist:
-  // print it across the foreground with a soft shadow-band, while the paper
-  // strip remains visibly crushed behind it.
+  // The couplet lives once, on a translucent Hui-ink banner at the bottom
+  // centre. The crushed sheet behind it stays a warm ivory object.
   const poemA = smoothstep(2.3, 2.78, u) * (1 - smoothstep(4.9, 5.35, u));
   if (poemA > 0.01) {
     ctx.save();
     ctx.globalAlpha = poemA;
-    const band = ctx.createLinearGradient(0, 448, 0, 634);
-    band.addColorStop(0, 'rgba(3,2,1,0)');
-    band.addColorStop(0.2, 'rgba(3,2,1,0.58)');
-    band.addColorStop(0.8, 'rgba(3,2,1,0.58)');
-    band.addColorStop(1, 'rgba(3,2,1,0)');
+    const band = ctx.createLinearGradient(0, 786, 0, 898);
+    band.addColorStop(0, 'rgba(6,5,4,0)');
+    band.addColorStop(0.10, 'rgba(9,7,5,0.80)');
+    band.addColorStop(0.90, 'rgba(9,7,5,0.80)');
+    band.addColorStop(1, 'rgba(6,5,4,0)');
     ctx.fillStyle = band;
-    ctx.fillRect(310, 440, 1300, 204);
-    ctx.fillStyle = 'rgba(216,170,79,0.85)';
-    ctx.fillRect(366, 483, 4, 124);
-    KIT.drawText(ctx, '烽火连三月，', 960, 504, {
-      size: 61, font: KIT.FONT.display, weight: 600, color: 'rgba(246,235,215,0.98)', align: 'center',
-      letterSpacing: 6, mark: 's08-poem',
-      shadow: { color: 'rgba(0,0,0,0.8)', blur: 12, x: 0, y: 3 },
+    ctx.fillRect(250, 786, 1420, 112);
+    const hair = ctx.createLinearGradient(250, 0, 1670, 0);
+    hair.addColorStop(0, 'rgba(216,170,79,0)');
+    hair.addColorStop(0.18, 'rgba(216,170,79,0.55)');
+    hair.addColorStop(0.82, 'rgba(216,170,79,0.55)');
+    hair.addColorStop(1, 'rgba(216,170,79,0)');
+    ctx.fillStyle = hair;
+    ctx.fillRect(250, 793, 1420, 1.2);
+    ctx.fillRect(250, 889, 1420, 1.2);
+    KIT.drawText(ctx, '烽火连三月，家书抵万金。', 960, 838, {
+      size: 60, font: KIT.FONT.display, weight: 600, color: 'rgba(248,238,219,0.99)', align: 'center',
+      letterSpacing: 5,
+      shadow: { color: 'rgba(0,0,0,0.85)', blur: 14, x: 0, y: 3 },
     });
-    KIT.drawText(ctx, '家书抵万金。', 960, 585, {
-      size: 61, font: KIT.FONT.display, weight: 600, color: 'rgba(246,235,215,0.98)', align: 'center',
-      letterSpacing: 6, shadow: { color: 'rgba(0,0,0,0.8)', blur: 12, x: 0, y: 3 },
+    KIT.drawText(ctx, '《春望》 · 七五七 · 家书 / FAMILY LETTER', 960, 880, {
+      size: 11, font: KIT.FONT.serif, weight: 500, color: 'rgba(226,205,166,0.7)', align: 'center', letterSpacing: 2.2,
     });
-    KIT.drawText(ctx, '《春望》 · 七五七 · 家书 / FAMILY LETTER', 960, 634, {
-      size: 11, font: KIT.FONT.serif, weight: 500, color: 'rgba(224,203,164,0.66)', align: 'center', letterSpacing: 2.2,
-    });
-    KIT.ink.sealStamp(ctx, 1442, 478, 74, '家書', {
+    KIT.ink.sealStamp(ctx, 1588, 806, 60, '家書', {
       seed: 758, color: '#a52a22', vertical: true, alpha: 0.9, font: KIT.FONT.display, border: true, inset: 6,
     });
     ctx.restore();
-    markText('s08-poem-full', '烽火连三月，家书抵万金。', 550, 470, 820, 132, { size: 61, align: 'center' });
+    markText('s08-poem-full', '烽火连三月，家书抵万金。', 620, 806, 680, 66, { size: 60, align: 'center' });
   }
 
   if (pulse > 0.7 && u >= 2.0 && u < 2.3) {

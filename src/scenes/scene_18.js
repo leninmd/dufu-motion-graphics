@@ -21,7 +21,11 @@ const SERIF = KIT.FONT.serif;
 
 const ED = { x: 64, y: 196, w: 1022, h: 754 };
 const PV0 = { x: 1100, y: 196, w: 748, h: 754 };
-const LINE_H = 25.5;
+// LINE_H is an INTEGER on purpose: a 25.5 px leading put every other code line
+// on a half-pixel boundary, and the green number tokens (4739 / 1455) rasterised
+// with a visible second, blurrier copy of themselves. Integer leading + integer
+// glyph origins below kill that ghosting completely.
+const LINE_H = 26;
 const CODE_TOP = 274;
 const FONT_CODE = 15;
 
@@ -633,7 +637,10 @@ function measurePrefix(ctx, line, nChars) {
 function drawCodeLine(ctx, line, x, y, reveal) {
   codeFont(ctx, FONT_CODE);
   let left = reveal;
-  let cx = x;
+  // one integer origin for the whole line: every token is stamped at a whole
+  // pixel so a number can never be drawn twice through sub-pixel AA
+  let cx = Math.round(x);
+  const yy = Math.round(y);
   for (const [text, style] of line.toks) {
     if (reveal != null) {
       if (left <= 0) break;
@@ -642,12 +649,12 @@ function drawCodeLine(ctx, line, x, y, reveal) {
       left -= chars.length;
       if (shown) {
         ctx.fillStyle = SYN[style] || SYN.plain;
-        ctx.fillText(shown, cx, y);
+        ctx.fillText(shown, Math.round(cx), yy);
         cx += ctx.measureText(shown).width;
       }
     } else {
       ctx.fillStyle = SYN[style] || SYN.plain;
-      ctx.fillText(text, cx, y);
+      ctx.fillText(text, Math.round(cx), yy);
       cx += ctx.measureText(text).width;
     }
   }
@@ -1183,6 +1190,15 @@ export function renderAt(ctx, u, beat, env = {}) {
   // mark the exact required code line while the panel is legible
   if (editorAlpha > 0.55 && collapse < 0.2) {
     markText('s18-code', CODE[5], 166, CODE_TOP + 5 * LINE_H - 12, 820, LINE_H - 2, { size: FONT_CODE });
+    // probe: integer leading + integer glyph origins are what keep the green
+    // number tokens (4739 / 1455) from rasterising a second, blurrier copy
+    KIT.debug.markBox('s18-code-metrics', 166, CODE_TOP + 5 * LINE_H - 12, 820, LINE_H - 2, {
+      role: 'code-metrics',
+      lineH: LINE_H,
+      integerLeading: Number.isInteger(LINE_H) ? 1 : 0,
+      originY: Math.round(CODE_TOP + 5 * LINE_H),
+      integerOrigin: Number.isInteger(CODE_TOP + 5 * LINE_H) ? 1 : 0,
+    });
   }
   void D; void grow; void beat; void env;
 }

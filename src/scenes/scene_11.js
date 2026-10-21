@@ -272,62 +272,182 @@ function drawMassifMist(ctx) {
 }
 
 /* --------------------------------------------------------------- the river */
-function drawRiver(ctx) {
+function riverSpine() {
   const spine = [
     [1322, 648], [1292, 706], [1308, 764], [1264, 822], [1216, 878],
     [1208, 940], [1162, 1002], [1150, 1080],
   ];
-  const pts = KIT.smoothPath(spine, 12);
+  return KIT.smoothPath(spine, 12);
+}
+
+/**
+ * A real hanging cataract: no solid tape ribbon and no thick black outline.
+ * 1,200半透明 water-mist particles + fine vertical flying-white silk threads,
+ * widening as the water falls, and a splash pool at the foot.
+ */
+function drawRiver(ctx, u = 0) {
+  const pts = riverSpine();
+  ctx.save();
+  // ---- soft body of water (very low alpha, no hard edge)
   const left = [], right = [];
   for (let i = 0; i < pts.length; i++) {
     const t = i / (pts.length - 1);
-    const w = 7 + Math.sin(t * Math.PI) * 12;
+    const w = 5 + Math.pow(t, 0.7) * 27 + Math.sin(t * Math.PI) * 7;
     const p0 = pts[Math.max(0, i - 1)], p1 = pts[Math.min(pts.length - 1, i + 1)];
     const dx = p1[0] - p0[0], dy = p1[1] - p0[1];
     const l = Math.hypot(dx, dy) || 1;
     left.push([pts[i][0] - (dy / l) * w, pts[i][1] + (dx / l) * w]);
     right.push([pts[i][0] + (dy / l) * w, pts[i][1] - (dx / l) * w]);
   }
-  const shape = [...left, ...right.reverse()];
   ctx.beginPath();
-  ctx.moveTo(shape[0][0], shape[0][1]);
-  for (let i = 1; i < shape.length; i++) ctx.lineTo(shape[i][0], shape[i][1]);
+  ctx.moveTo(left[0][0], left[0][1]);
+  for (let i = 1; i < left.length; i++) ctx.lineTo(left[i][0], left[i][1]);
+  for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(245,239,223,0.95)';
+  const bodyG = ctx.createLinearGradient(0, 640, 0, H);
+  bodyG.addColorStop(0, 'rgba(247,241,225,0.62)');
+  bodyG.addColorStop(0.45, 'rgba(247,241,225,0.40)');
+  bodyG.addColorStop(0.85, 'rgba(250,245,232,0.26)');
+  bodyG.addColorStop(1, 'rgba(250,245,232,0.05)');
+  ctx.fillStyle = bodyG;
   ctx.fill();
-  for (const side of [left, right]) {
+  ctx.restore();
+
+  // ---- 1,200 water-mist droplets suspended along the fall
+  const dr = mulberry32(7666);
+  ctx.save();
+  for (let i = 0; i < 1200; i++) {
+    const t = dr();
+    const idx = t * (pts.length - 1);
+    const i0 = Math.min(pts.length - 2, Math.floor(idx));
+    const f = idx - i0;
+    const cxp = lerp(pts[i0][0], pts[i0 + 1][0], f);
+    const cyp = lerp(pts[i0][1], pts[i0 + 1][1], f);
+    const w = 5 + Math.pow(t, 0.7) * 27;
+    const off = (dr() - 0.5) * 2 * w * (0.35 + dr() * 0.9);
+    const fall = (u * (26 + dr() * 60) + dr() * 240) % 240;
+    const x = cxp + off;
+    const y = cyp + (dr() - 0.5) * 30 + fall * 0.16;
+    const a = 0.10 + dr() * 0.42;
+    const size = 0.7 + Math.pow(dr(), 2) * 2.1;
+    ctx.fillStyle = `rgba(250,246,233,${a.toFixed(3)})`;
+    ctx.fillRect(x, y, size, size + dr() * 2.4);
+  }
+  // ---- fine vertical flying-white threads
+  for (let i = 0; i < 64; i++) {
+    const t = dr();
+    const idx = Math.min(pts.length - 1, Math.round(t * (pts.length - 1)));
+    const p = pts[idx];
+    const w = 5 + Math.pow(t, 0.7) * 27;
+    const sx = p[0] + (dr() - 0.5) * 2 * w * 0.92;
+    const len = 30 + dr() * 120;
+    const sy = p[1] + (dr() - 0.5) * 26;
+    ctx.strokeStyle = `rgba(252,247,234,${(0.10 + dr() * 0.34).toFixed(3)})`;
+    ctx.lineWidth = 0.6 + dr() * 1.5;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    for (let i = 0; i < side.length; i++) {
-      if (i === 0) ctx.moveTo(side[i][0], side[i][1]);
-      else ctx.lineTo(side[i][0], side[i][1]);
-    }
-    ctx.strokeStyle = 'rgba(20,17,11,0.9)';
-    ctx.lineWidth = 3.6;
+    ctx.moveTo(sx, sy);
+    ctx.quadraticCurveTo(sx + (dr() - 0.5) * 6, sy + len * 0.5, sx + (dr() - 0.5) * 10, sy + len);
     ctx.stroke();
   }
+  ctx.restore();
+
+  // ---- splash mist at the foot of the fall
+  const foot = pts[pts.length - 4];
+  ctx.save();
+  const splash = ctx.createRadialGradient(foot[0], foot[1] - 30, 6, foot[0], foot[1] - 30, 150);
+  splash.addColorStop(0, 'rgba(250,247,236,0.32)');
+  splash.addColorStop(0.55, 'rgba(244,239,224,0.14)');
+  splash.addColorStop(1, 'rgba(244,239,224,0)');
+  ctx.fillStyle = splash;
+  ctx.fillRect(foot[0] - 160, foot[1] - 190, 320, 320);
+  ctx.restore();
+
+  // ---- sparse dark accents in the stream, never an outline
   const r = mulberry32(7665);
-  ctx.strokeStyle = 'rgba(40,36,26,0.5)';
+  ctx.strokeStyle = 'rgba(40,36,26,0.32)';
   ctx.lineCap = 'round';
-  for (let i = 0; i < 34; i++) {
-    const t = r();
-    const idx = Math.min(pts.length - 2, Math.floor(t * (pts.length - 2)));
+  for (let i = 0; i < 26; i++) {
+    const idx = Math.floor(r() * (pts.length - 2)) + 1;
     const p = pts[idx];
-    const w = (7 + Math.sin(t * Math.PI) * 12) * (r() * 1.2 - 0.6);
-    ctx.lineWidth = 0.7 + r() * 1.1;
+    const t = idx / (pts.length - 1);
+    const w = (5 + Math.pow(t, 0.7) * 27) * (r() * 1.1 - 0.55);
+    ctx.lineWidth = 0.6 + r() * 0.9;
     ctx.beginPath();
     ctx.moveTo(p[0] + w - 3, p[1] - 2);
-    ctx.quadraticCurveTo(p[0] + w, p[1] + 1, p[0] + w + 4 + r() * 8, p[1] - 1);
+    ctx.quadraticCurveTo(p[0] + w, p[1] + 1, p[0] + w + 3 + r() * 6, p[1] - 1);
     ctx.stroke();
   }
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 12; i++) {
     const idx = Math.floor(r() * (pts.length - 4)) + 2;
     const p = pts[idx];
     const side = r() < 0.5 ? 1 : -1;
     ctx.beginPath();
     ctx.ellipse(p[0] + side * (20 + r() * 18), p[1] + (r() - 0.5) * 16, 3 + r() * 9, 2 + r() * 5, r(), 0, TAU);
-    ctx.fillStyle = `rgba(18,16,10,${(0.3 + r() * 0.35).toFixed(3)})`;
+    ctx.fillStyle = `rgba(18,16,10,${(0.16 + r() * 0.22).toFixed(3)})`;
     ctx.fill();
   }
+}
+
+/**
+ * Fan Kuan's 「雨点皴」 and axe-cut strokes, laid over the massif in two denser
+ * strata, plus two horizontal cloud bands drifting across the peak.
+ */function drawFanKuanTexture(ctx, u = 0) {
+  const inside = (x, y) => y > massTop(x) + 8 && y < 1080;
+  ctx.save();
+  ridgePath(ctx);
+  ctx.clip();
+  // dense rain-drop cun: short vertical clusters
+  const rp = mulberry32(7674);
+  for (let i = 0; i < 2600; i++) {
+    const x = -30 + rp() * 1700;
+    const top = massTop(x);
+    const y = top + 10 + Math.pow(rp(), 0.8) * 700;
+    if (!inside(x, y)) continue;
+    const len = 3 + rp() * 13;
+    const wd = 0.7 + rp() * 1.9;
+    ctx.fillStyle = `rgba(18,16,11,${(0.05 + rp() * 0.24).toFixed(3)})`;
+    ctx.fillRect(x, y, wd, len);
+  }
+  // axe-cut wedges, denser than the base pass
+  const axeTones = buildCunfa({ x0: -20, y0: 90, x1: 1680, y1: 1080 }, 15, 6009, { wMul: 1.4, lenMul: 1.9, skip: 0.12 });
+  drawCunfa(ctx, axeTones);
+  // two flowing horizontal cloud bands: patchy mist puffs, never hard bars
+  for (const band of [{ y: 372, h: 46, sp: 18, a: 0.5, seed: 31 }, { y: 604, h: 58, sp: -13, a: 0.56, seed: 47 }]) {
+    for (let i = 0; i < 15; i++) {
+      const r1 = KIT.unit(band.seed, i, 1);
+      const r2 = KIT.unit(band.seed, i, 2);
+      const r3 = KIT.unit(band.seed, i, 3);
+      const px = r1 * (W + 420) - 210;
+      const py = band.y + (r2 - 0.5) * band.h * 1.3;
+      const rx = 150 + r3 * 210;
+      const ry = band.h * (0.55 + r2 * 0.6);
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(1, ry / rx);
+      const gg = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+      gg.addColorStop(0, `rgba(248,243,229,${(0.16 * band.a).toFixed(3)})`);
+      gg.addColorStop(0.5, `rgba(244,238,222,${(0.10 * band.a).toFixed(3)})`);
+      gg.addColorStop(1, 'rgba(244,238,222,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    const br = mulberry32(band.y);
+    for (let i = 0; i < 18; i++) {
+      const y0 = band.y + (br() - 0.5) * band.h * 1.3;
+      const off = (band.sp + br() * 900) % 2100;
+      ctx.strokeStyle = `rgba(250,246,234,${(0.04 + br() * 0.1).toFixed(3)})`;
+      ctx.lineWidth = 0.8 + br() * 1.8;
+      ctx.beginPath();
+      for (let x = -60; x <= W + 60; x += 44) {
+        const yy = y0 + Math.sin((x + off) * 0.0042 + i) * band.h * 0.4;
+        if (x === -60) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
 }
 
 /* ------------------------------------------------------- pavilion and poet */
@@ -476,10 +596,11 @@ function wideLayer() {
     }
 
     drawMassif(ctx);
+    drawFanKuanTexture(ctx, 0);
     drawCunfa(ctx, buildCunfa({ x0: -20, y0: 60, x1: 1660, y1: 1080 }, 25, 6001, { wMul: 1.15, lenMul: 1.6 }));
     // a finer, blacker pass over the cliff face above the shelf
     drawCunfa(ctx, buildCunfa({ x0: 520, y0: 430, x1: 1240, y1: 960 }, 10, 6002, { wMul: 0.6, lenMul: 1.5 }));
-    drawRiver(ctx);
+    drawRiver(ctx, 0);
     drawMassifMist(ctx);
     drawPines(ctx);
 
@@ -1101,6 +1222,49 @@ function drawLiveDetail(ctx, z, u, landX, landY) {
 let LIVE_NEAR = null;
 let LIVE_FAR = null;
 
+/** Live, animated weather layered over the baked wide plate. */
+function drawLiveWeather(ctx, u) {
+  // two soft cloud belts sliding across the massif
+  for (const band of [{ y: 372, h: 48, sp: 22, a: 0.13, seed: 3 }, { y: 604, h: 62, sp: -16, a: 0.12, seed: 9 }]) {
+    ctx.save();
+    for (let i = 0; i < 9; i++) {
+      const r1 = KIT.unit(band.seed, i, 11);
+      const r2 = KIT.unit(band.seed, i, 12);
+      const px = ((r1 + (u * band.sp) / 2600) % 1) * (W + 500) - 250;
+      const py = band.y + (r2 - 0.5) * band.h * 1.4;
+      const rx = 170 + r2 * 220;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(1, (band.h * 0.8) / rx);
+      const gg = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+      gg.addColorStop(0, `rgba(250,246,233,${(band.a * 1.5).toFixed(3)})`);
+      gg.addColorStop(0.55, `rgba(246,241,226,${band.a.toFixed(3)})`);
+      gg.addColorStop(1, 'rgba(246,241,226,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  // animated spray drifting off the cataract
+  const pts = riverSpine();
+  const sp = mulberry32(7679);
+  ctx.save();
+  for (let i = 0; i < 260; i++) {
+    const t = sp();
+    const idx = Math.min(pts.length - 1, Math.round(t * (pts.length - 1)));
+    const p = pts[idx];
+    const w = 5 + Math.pow(t, 0.7) * 27;
+    const life = (sp() + u * (0.16 + sp() * 0.3)) % 1;
+    const x = p[0] + (sp() - 0.5) * 2.3 * w + Math.sin(u * 1.4 + i) * 5 * life;
+    const y = p[1] - life * 130 + 15;
+    const a = (1 - life) * (0.12 + sp() * 0.4);
+    ctx.fillStyle = `rgba(252,248,238,${a.toFixed(3)})`;
+    ctx.fillRect(x, y, 0.9 + sp() * 1.8, 0.9 + sp() * 1.8);
+  }
+  ctx.restore();
+}
+
 export function renderAt(ctx, u, beat, env = {}) {
   if (!LIVE_NEAR) {
     LIVE_NEAR = buildCunfa({ x0: 560, y0: 470, x1: 1220, y1: 960 }, 8, 6101, { wMul: 0.5, lenMul: 1.6 });
@@ -1125,6 +1289,9 @@ export function renderAt(ctx, u, beat, env = {}) {
     ctx.scale(z, z);
     ctx.translate(-FOCUS.x, -FOCUS.y);
     ctx.drawImage(wideLayer(), 0, 0);
+    // live weather over the painted plate: two drifting cloud belts and the
+    // spray of the cataract
+    drawLiveWeather(ctx, u);
     drawLiveDetail(ctx, z, u, landX, landY);
     ctx.restore();
     drawPushMarks(ctx, u);
@@ -1190,6 +1357,7 @@ export function renderAt(ctx, u, beat, env = {}) {
   }
 
   drawWideInscription(ctx, u);
+  KIT.debug.markBox('s11-fall', 1120, 600, 260, 480, { role: 'waterfall', ribbons: 64, mist: 1200 });
 
   // ---- paper grain + vignette ----
   const grain = KIT.layer('scene11:grain', 480, 270, (c) => KIT.grainLayer(480, 270, 766, { amp: 0.1 }));

@@ -28,6 +28,7 @@ const a = parseArgs(process.argv.slice(2));
 const framesDir = path.resolve(ROOT, a['from-frames'] || 'output/v6_work/frames');
 const wav = path.resolve(ROOT, a.audio || 'output/audio/mix_v6.wav');
 const outDir = path.resolve(ROOT, a.out || 'output/v6_pelican_paradigm');
+const tag = a.tag ? String(a.tag) : '';
 fs.mkdirSync(outDir, { recursive: true });
 
 const ffmpeg = (() => {
@@ -47,9 +48,10 @@ function run(args, label) {
   if (r.status !== 0) throw new Error(`ffmpeg failed: ${label}`);
 }
 
-const master = path.join(outDir, 'dufu_test_1080p.mp4');
-const share = path.join(outDir, 'dufu_test_1080p_share.mp4');
-const preview = path.join(outDir, 'dufu_test_720p_preview.mp4');
+const nameOf = (base) => (tag ? base.replace('dufu_test_', `dufu_test_${tag}_`) : base);
+const master = path.join(outDir, nameOf('dufu_test_1080p.mp4'));
+const share = path.join(outDir, nameOf('dufu_test_1080p_share.mp4'));
+const preview = path.join(outDir, nameOf('dufu_test_720p_preview.mp4'));
 
 const input = [
   '-framerate', '60', '-start_number', '0', '-i', path.join(framesDir, 'f%05d.jpg'),

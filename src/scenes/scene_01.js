@@ -1198,11 +1198,25 @@ export function renderAt(ctx, u, beat, env = {}) {
   drawImpactDust(ctx, u);
   ctx.restore(); // shake
 
-  // ---- faint red inscription at the top
+  // ---- faint red inscription at the top (brightened cinnabar, ivory backing
+  // plate + 1px ivory edge so it survives the black stone rubbing below)
   ctx.save();
-  ctx.globalAlpha = smoothstep(0.15, 0.85, u);
+  const topA = smoothstep(0.15, 0.85, u);
+  ctx.globalAlpha = topA;
+  ctx.font = `600 28px ${KIT.FONT.display}`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '8px';
+  const insW = ctx.measureText('巩县 · 景云三年').width;
+  const bx = 588 - 22, by = 118 - 27, bw = insW + 44, bh = 54;
+  const backing = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+  backing.addColorStop(0, 'rgba(18,16,12,0)');
+  backing.addColorStop(0.12, 'rgba(18,16,12,0.62)');
+  backing.addColorStop(0.88, 'rgba(18,16,12,0.62)');
+  backing.addColorStop(1, 'rgba(18,16,12,0)');
+  ctx.fillStyle = backing;
+  ctx.fillRect(bx, by, bw, bh);
   KIT.ink.roughText(ctx, '巩县 · 景云三年', 588, 118, {
-    size: 28, font: KIT.FONT.display, weight: 600, color: 'rgba(178,52,40,0.78)', seed: 3, letterSpacing: 8,
+    size: 28, font: KIT.FONT.display, weight: 700, color: '#f04e37',
+    stroke: 'rgba(246,240,224,0.82)', strokeWidth: 1, seed: 3, letterSpacing: 8,
   });
   ctx.restore();
 

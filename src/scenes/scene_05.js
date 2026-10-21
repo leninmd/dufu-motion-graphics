@@ -156,6 +156,47 @@ function leafLayer() {
         c.stroke();
       }
     }
+    // ---- the left ledger page is the oldest sheet in the album: a dense
+    // worm-eaten band, ragged nibbles along its gutter and hairline tears
+    const wr = mulberry32(hash('s05worm', 751));
+    for (let i = 0; i < 64; i++) {
+      const x = 48 + Math.pow(wr(), 0.72) * 540;
+      const y = 200 + wr() * 770;
+      const rad = 0.9 + Math.pow(wr(), 3.1) * 5.4;
+      c.fillStyle = `rgba(38,25,13,${(0.26 + wr() * 0.34).toFixed(3)})`;
+      c.beginPath();
+      // a ragged, non-circular bite
+      const seg = 9;
+      for (let k = 0; k <= seg; k++) {
+        const a = (k / seg) * TAU;
+        const rr = rad * (0.62 + wr() * 0.72);
+        const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr * (0.7 + wr() * 0.6);
+        if (k === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      }
+      c.closePath(); c.fill();
+      // browned paper halo around the bite
+      c.strokeStyle = `rgba(128,86,40,${(0.12 + wr() * 0.3).toFixed(3)})`;
+      c.lineWidth = 0.9 + wr() * 1.4;
+      c.beginPath(); c.arc(x, y, rad + 2 + wr() * 5, 0, TAU); c.stroke();
+      if (wr() < 0.24) {
+        c.strokeStyle = `rgba(92,62,30,${(0.10 + wr() * 0.18).toFixed(3)})`;
+        c.lineWidth = 0.7;
+        c.beginPath();
+        c.moveTo(x, y);
+        const a0 = wr() * TAU;
+        c.lineTo(x + Math.cos(a0) * (12 + wr() * 44), y + Math.sin(a0) * (10 + wr() * 32));
+        c.stroke();
+      }
+    }
+    // the nibbled gutter between the two pages
+    c.strokeStyle = 'rgba(70,46,22,0.34)';
+    c.lineWidth = 1.2;
+    c.beginPath();
+    for (let y = iy; y <= iy + ih; y += 7) {
+      const x = 606 + Math.sin(y * 0.11) * 5 + (wr() - 0.5) * 7;
+      if (y === iy) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.stroke();
     c.restore();
 
     // album-leaf frame (double rule + silk joint)
@@ -184,8 +225,14 @@ function leafLayer() {
 }
 
 /* ============================================================ counting rods */
+let ROD_T = 0;
 function drawRod(ctx, x, y, len, vertical, color, alpha, seed) {
   const r = mulberry32(hash('s05rod', seed));
+  // the beads are being moved: every rod quivers by a fraction of a pixel
+  const ph = (seed % 17) * 0.9;
+  const quiver = Math.sin(ROD_T * 5.4 + ph) * 0.95 + Math.sin(ROD_T * 11.3 + ph * 2.1) * 0.45;
+  x += quiver * (vertical ? 0.75 : 0.2);
+  y += quiver * (vertical ? 0.15 : 0.65);
   ctx.save();
   ctx.globalAlpha = alpha;
   if (vertical) {
@@ -566,68 +613,119 @@ function drawCaption(ctx, u) {
   ctx.restore();
 }
 
-/** The ten characters, dropping onto the donkey's back as physical blocks. */
+/** The ten characters, stacked in two tidy rows on a bowed bamboo pole that
+ *  rides above the traveller's head. His bent silhouette stays 100% clear. */
+const POLE_Y = 540;
+const POLE_X0 = 800, POLE_X1 = 1224;
+const poleYAt = (x) => POLE_Y + 16 * Math.sin(Math.PI * clamp01((x - POLE_X0) / (POLE_X1 - POLE_X0)));
+
 function drawWeights(ctx, u, donX = 1010, groundY = 900) {
-  const chars = [...WEIGHTS];
-  const spacing = 52;
-  const startX = donX - ((chars.length - 1) * spacing) / 2;
-  const baseY = groundY - 158;
+  const alpha = smoothstep(2.0, 2.12, u) * (1 - smoothstep(4.62, 5.26, u));
+  if (alpha <= 0.01) return;
+  const rows = [
+    { chars: ['朝', '扣', '富', '儿', '门', '，'], row: 1 },
+    { chars: ['残', '杯', '与', '冷', '炙'], row: 0 },
+  ];
+  const BS = 44, STEP = 52;
+  const cxc = donX + 4;
   const r = mulberry32(hash('s05w', 5));
-  // a dark harness / load shadow physically connects the row to the animal
+
+  // ---- the load-bearing bamboo pole, bowing under the weight
   ctx.save();
-  ctx.globalAlpha = u >= 2.15 ? 0.36 : 0.12;
-  ctx.strokeStyle = 'rgba(51,36,20,0.8)';
-  ctx.lineWidth = 3;
-  for (const ex of [startX - 26, startX + (chars.length - 1) * spacing + 26]) {
+  ctx.globalAlpha = alpha;
+  const polePts = [];
+  for (let x = POLE_X0; x <= POLE_X1; x += 12) polePts.push([x, poleYAt(x)]);
+  ctx.strokeStyle = 'rgba(122,84,42,0.92)';
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  polePts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(60,40,20,0.5)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  polePts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1] + 3.6) : ctx.moveTo(p[0], p[1] + 3.6)));
+  ctx.stroke();
+  // bamboo nodes
+  for (let x = POLE_X0 + 30; x < POLE_X1; x += 74) {
+    const y = poleYAt(x);
+    ctx.strokeStyle = 'rgba(60,40,20,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke();
+  }
+  // ---- slung stones at both ends (the counterweight that keeps the pole level)
+  for (const ex of [POLE_X0 + 10, POLE_X1 - 10]) {
+    const ey = poleYAt(ex);
+    ctx.strokeStyle = 'rgba(70,48,24,0.75)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(ex, ey + 4); ctx.lineTo(ex, ey + 116); ctx.stroke();
+    const sr = mulberry32(hash('s05stone', Math.round(ex)));
+    ctx.fillStyle = 'rgba(44,32,18,0.9)';
     ctx.beginPath();
-    ctx.moveTo(ex, baseY - 18);
-    ctx.quadraticCurveTo(ex + (ex < donX ? 8 : -8), baseY + 40, donX + (ex < donX ? -58 : 58), baseY + 48);
+    ctx.moveTo(ex - 17, ey + 118);
+    ctx.lineTo(ex + 16, ey + 116);
+    ctx.lineTo(ex + 20, ey + 152);
+    ctx.lineTo(ex - 20 + sr() * 6, ey + 154);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(150,118,72,0.5)';
+    ctx.lineWidth = 1;
     ctx.stroke();
   }
   ctx.restore();
-  for (let i = 0; i < chars.length; i++) {
-    const t0 = 2.02 + i * 0.07;
-    const dt = u - t0;
-    if (dt < 0) continue;
-    const drop = clamp01(dt / 0.26);
-    const fall = easeInBack(drop);
-    const x = startX + i * spacing;
-    const y = lerp(baseY - 240, baseY, fall) - (1 - fall) * 20;
-    if (y < -80) continue;
-    const press = clamp01((u - 2.3) * 1.6);
-    ctx.save();
-    ctx.translate(x, y - 20);
-    ctx.rotate((r() - 0.5) * 0.06 * (1 - drop));
-    // cast shadow onto the paper
-    ctx.save();
-    ctx.globalAlpha = 0.22 * drop;
-    ctx.fillStyle = 'rgba(40,26,12,1)';
-    ctx.fillRect(-22 + 5, -22 + 7, 44, 46);
-    ctx.restore();
-    // ink block
-    const g = ctx.createLinearGradient(-22, -24, 22, 24);
-    g.addColorStop(0, 'rgba(38,29,19,0.96)');
-    g.addColorStop(1, 'rgba(26,19,12,0.98)');
-    ctx.fillStyle = g;
-    ctx.fillRect(-22, -24, 44, 46);
-    // paper-coloured character cut into the block
-    KIT.drawText(ctx, chars[i], 0, -1, {
-      size: 38, font: KIT.FONT.display, weight: 700, color: '#f0e7cf', align: 'center',
-    });
-    // chipped edge
-    ctx.globalCompositeOperation = 'destination-out';
-    for (let k = 0; k < 5; k++) {
-      const px = -22 + r() * 44, py = -24 + r() * 46;
-      ctx.beginPath(); ctx.arc(px, py, 0.6 + r() * 1.6, 0, TAU); ctx.fill();
+
+  for (const group of rows) {
+    const n = group.chars.length;
+    const startX = cxc - ((n - 1) * STEP) / 2;
+    for (let i = 0; i < n; i++) {
+      const idx = group.row === 1 ? i : rows[0].chars.length + i;
+      const t0 = 2.02 + idx * 0.055;
+      const dt = u - t0;
+      if (dt < 0) continue;
+      const drop = clamp01(dt / 0.26);
+      const x = startX + i * STEP;
+      const floorY = poleYAt(x) - 3 - (group.row === 1 ? BS + 4 : 0);
+      const y = lerp(floorY - 250, floorY, easeInBack(drop)) - (1 - drop) * 18;
+      if (x < 54 || x > W - 54) continue;      // never draw a truncated slab
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(x, y - BS / 2);
+      ctx.rotate((r() - 0.5) * 0.05 * (1 - drop));
+      // cast shadow onto the paper
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.22 * drop;
+      ctx.fillStyle = 'rgba(40,26,12,1)';
+      ctx.fillRect(-BS / 2 + 5, -BS / 2 + 7, BS, BS + 2);
+      ctx.restore();
+      // the slab: heavy black stone with a lit top bevel
+      const g = ctx.createLinearGradient(-BS / 2, -BS / 2, BS / 2, BS / 2);
+      g.addColorStop(0, 'rgba(46,35,23,0.97)');
+      g.addColorStop(0.55, 'rgba(30,22,14,0.98)');
+      g.addColorStop(1, 'rgba(20,14,9,0.99)');
+      ctx.fillStyle = g;
+      ctx.fillRect(-BS / 2, -BS / 2, BS, BS);
+      ctx.fillStyle = 'rgba(198,176,138,0.22)';
+      ctx.fillRect(-BS / 2, -BS / 2, BS, 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(-BS / 2, BS / 2 - 2, BS, 2);
+      // paper-coloured character cut into the block
+      KIT.drawText(ctx, group.chars[i], 0, 0, {
+        size: 36, font: KIT.FONT.display, weight: 700, color: '#f0e7cf', align: 'center',
+      });
+      // chipped edge
+      ctx.globalCompositeOperation = 'destination-out';
+      for (let k = 0; k < 5; k++) {
+        const px = -BS / 2 + r() * BS, py = -BS / 2 + r() * BS;
+        ctx.beginPath(); ctx.arc(px, py, 0.6 + r() * 1.6, 0, TAU); ctx.fill();
+      }
+      ctx.restore();
     }
-    ctx.restore();
-    void press;
   }
 }
 
 /* ================================================================ render */
 export function renderAt(ctx, u, beat, env = {}) {
   initRain();
+  ROD_T = u;
   const leaf = leafLayer();
 
   const sag = smoothstep(2.15, 2.7, u) * (0.72 + 0.28 * (1 - smoothstep(4.0, 4.8, u)));
@@ -772,9 +870,14 @@ export function renderAt(ctx, u, beat, env = {}) {
   if (u >= 2.12) {
     markText('s05-caption', CAPTION, 584, 216, 960, 60, { size: 38, align: 'left', color: '#241d13' });
   }
-  if (u >= 2.4) {
-    markText('s05-weights', WEIGHTS, 776, 676, 560, 72, { size: 38, align: 'left', color: '#f0e7cf' });
+  if (u >= 2.4 && u < 5.1) {
+    // the ten slabs ride the pole at y ∈ [455, 556]; the traveller's bent
+    // silhouette (y ∈ [580, 880]) is deliberately left untouched
+    markText('s05-weights', WEIGHTS, 850, 455, 320, 100, { size: 36, align: 'left', color: '#f0e7cf' });
   }
+  // probe: the traveller's silhouette must stay uncovered by the load
+  KIT.debug.markBox('s05-figure', donX - 96, 580, 192, 300, { role: 'figure' });
+  KIT.debug.markBox('s05-load-band', 850, 440, 320, 130, { role: 'load' });
   void beat; void env;
 }
 

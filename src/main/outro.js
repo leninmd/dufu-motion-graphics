@@ -431,7 +431,7 @@ function drawEmptyCell(ctx, cam, u) {
     ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
   }
   // stars gathering inside the cell
-  if (u > 19.1) drawCellStars(ctx, cell, u);
+  if (u > 19.0) drawCellStars(ctx, cell, u);
   ctx.restore();
   // glass reflection
   const sheen = ctx.createLinearGradient(sx, sy, sx + sw, sy + sh);
@@ -541,38 +541,123 @@ function drawTileSparks(ctx, index, cell, u, gold) {
 }
 
 /* ----------------------------------------------------------- 1,455 stars */
+/**
+ * The Milky Way is an S-shaped golden spiral ribbon that runs the FULL width of
+ * the 19th cell and over the Xiang river. The old finale collapsed all 1,455
+ * stars into one tight blob in the middle of the frame, which read as television
+ * snow / a barcode; this ribbon never does that.
+ */
+let GALAXY = null;
+function galaxyCurve(cell) {
+  if (GALAXY) return GALAXY;
+  const pts = [];
+  const N = 240;
+  const cx = cell.x + cell.w * 0.5;
+  const cy = cell.y + cell.h * 0.54;
+  const halfW = cell.w * 0.475;
+  const amp = cell.h * 0.30;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const th = -Math.PI / 2 + Math.PI * t;
+    const x = cx + Math.sin(th) * halfW;
+    const y = cy + Math.sin(th * 2.15 + 0.42) * amp * (0.5 + 0.5 * Math.sin(Math.PI * t));
+    pts.push([x, y]);
+  }
+  GALAXY = pts;
+  return pts;
+}
+function galaxyAt(t, cell) {
+  const pts = galaxyCurve(cell);
+  const f = clamp01(t) * (pts.length - 1);
+  const i = Math.min(pts.length - 2, Math.floor(f));
+  const k = f - i;
+  return [lerp(pts[i][0], pts[i + 1][0], k), lerp(pts[i][1], pts[i + 1][1], k)];
+}
+
 function drawCellStars(ctx, cell, u) {
-  const p = smoothstep(19.1, 21.8, u);
+  const p = smoothstep(19.05, 21.2, u);
   if (p <= 0) return;
-  const cx = cell.x + cell.w * 0.56;
-  const cy = cell.y + cell.h * 0.44;
-  const r = mulberry32(hash('cellstars', 1455));
+  // the ribbon is poured in from the left lip of the frame to the right
+  const build = smoothstep(20.0, 22.3, u);
+  const pts = galaxyCurve(cell);
+  const seg = Math.max(2, Math.floor(pts.length * build));
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 520; i++) {
-    const a = r() * KIT.TAU;
-    const dist = Math.pow(r(), 0.55) * 340;
-    const spin = (1 - p) * 3.2 + 0.2;
-    const x = cx + Math.cos(a + spin) * dist * p;
-    const y = cy + Math.sin(a + spin) * dist * 0.42 * p;
-    const tw = 0.3 + r() * 0.7;
-    ctx.fillStyle = `rgba(248,207,120,${(0.12 + tw * 0.72) * p})`;
-    const s = 0.8 + tw * 2.4;
+  // ---- luminous body: three soft passes along the spiral
+  const passes = [
+    { w: cell.h * 0.30, a: 0.055, c: 'rgba(214,166,88,1)' },
+    { w: cell.h * 0.15, a: 0.10, c: 'rgba(238,196,112,1)' },
+    { w: cell.h * 0.05, a: 0.20, c: 'rgba(255,226,156,1)' },
+  ];
+  for (const q of passes) {
+    ctx.strokeStyle = q.c;
+    ctx.globalAlpha = q.a * p;
+    ctx.lineWidth = q.w;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < seg; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+  }
+  // ---- the 1,455 stars themselves, riding the ribbon
+  const r = mulberry32(hash('cellstars', 1455));
+  const band = cell.h * 0.20;
+  for (let i = 0; i < 1455; i++) {
+    const t = (i * 0.61803398875 + 0.11) % 1;
+    if (t > build) continue;
+    const g0 = galaxyAt(Math.max(0, t - 0.004), cell);
+    const g1 = galaxyAt(Math.min(1, t + 0.004), cell);
+    const dx = g1[0] - g0[0], dy = g1[1] - g0[1];
+    const L = Math.hypot(dx, dy) || 1;
+    const nx = -dy / L, ny = dx / L;
+    // two triangular samples ≈ a soft gaussian across the ribbon
+    const spread = (r() - 0.5) + (r() - 0.5);
+    const twist = Math.sin(t * Math.PI * 1.0) * 0.9 + 0.25;
+    const off = spread * band * twist;
+    const x = g0[0] + nx * off;
+    const y = g0[1] + ny * off;
+    const tw = r() * 0.72 + 0.28;
+    const a = (0.12 + tw * 0.74) * p;
+    ctx.fillStyle = `rgba(${248 - Math.round(tw * 8)},${Math.round(196 + tw * 36)},${Math.round(96 + tw * 54)},${a.toFixed(3)})`;
+    const s = 0.55 + tw * 1.55;
     ctx.fillRect(x, y, s, s);
-    if (i % 37 === 0) {
+    // hero stars get a four-point glint
+    if (i % 97 === 0) {
+      const gl = 5 + tw * 7;
+      ctx.strokeStyle = `rgba(255,238,190,${(a * 0.7).toFixed(3)})`;
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(x - gl, y); ctx.lineTo(x + gl, y);
+      ctx.moveTo(x, y - gl * 0.8); ctx.lineTo(x, y + gl * 0.8);
+      ctx.stroke();
+    }
+    if (i % 61 === 0) {
       ctx.font = `${9 + tw * 9}px "Noto Serif SC", serif`;
-      ctx.fillStyle = `rgba(255,222,150,${0.32 * p})`;
+      ctx.fillStyle = `rgba(255,226,158,${(0.3 * p).toFixed(3)})`;
       ctx.fillText(['杜', '甫', '詩', '史', '唐'][i % 5], x, y);
     }
   }
+  // ---- a darker dust lane slicing through the ribbon
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 0.5 * p;
+  ctx.strokeStyle = 'rgba(6,10,12,0.9)';
+  ctx.lineWidth = cell.h * 0.045;
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1] + 6);
+  for (let i = 1; i < seg; i++) {
+    const nxp = pts[i][0];
+    ctx.lineTo(nxp, pts[i][1] + 5 + Math.sin(i * 0.2) * 3);
+  }
+  ctx.stroke();
   ctx.restore();
+  void p;
 }
 
 function drawStarStream(ctx, cam, u) {
   if (u < 18.3) return;
   const p = smoothstep(18.3, 21.4, u);
   if (p <= 0) return;
-  const target = [BIG.x + BIG.w * 0.55, BIG.y + BIG.h * 0.46];
   const r = mulberry32(hash('starmigration', 1455));
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
@@ -584,8 +669,12 @@ function drawStarStream(ctx, cam, u) {
     if (t <= 0) continue;
     const sx = cell.x + cell.w * (0.2 + r() * 0.6);
     const sy = cell.y + cell.h * (0.2 + r() * 0.6);
-    const tx = target[0] + (r() - 0.5) * 190;
-    const ty = target[1] + (r() - 0.5) * 110;
+    // each character lands on its own place in the spiral ribbon, never in a
+    // central rectangle: the destination spreads across the whole 19th cell
+    const gt = (i * 0.61803398875 + 0.11) % 1;
+    const g = galaxyAt(gt, BIG);
+    const tx = g[0] + (r() - 0.5) * 120;
+    const ty = g[1] + (r() - 0.5) * 70;
     const e = easeInOut(t);
     const midX = (sx + tx) / 2 + (r() - 0.5) * 180;
     const midY = Math.min(sy, ty) - 80 - r() * 180;
@@ -593,7 +682,7 @@ function drawStarStream(ctx, cam, u) {
     const [px, py] = screen(cam, x[0], x[1]);
     if (px < -10 || px > W + 10 || py < -10 || py > H + 10) continue;
     const tw = 0.3 + r() * 0.7;
-    const a = (1 - smoothstep(21.5, 22.3, u)) * (0.18 + tw * 0.8) * Math.min(1, t * 3);
+    const a = (1 - smoothstep(21.6, 22.4, u)) * (0.18 + tw * 0.8) * Math.min(1, t * 3);
     ctx.fillStyle = `rgba(248,204,116,${a})`;
     const sz = (1 + tw * 2.6) * Math.min(1.5, cam.zoom);
     ctx.fillRect(px, py, sz, sz);
@@ -661,7 +750,8 @@ function drawOutroText(ctx, u) {
 }
 
 function drawFinalSeal(ctx, u) {
-  const p = smoothstep(22.35, 22.85, u);
+  // 02:15.5 — the 【詩史】 seal condenses out of the middle of the star river
+  const p = smoothstep(21.35, 21.95, u);
   if (p <= 0) return;
   const size = 210;
   ctx.save();
@@ -706,6 +796,28 @@ export function renderOutro(ctx, t, env = {}) {
   }
   drawEmptyCell(ctx, cam, u);
   ctx.restore();
+
+  // the star river lights up the whole Xiang river dock: a warm bloom bleeding
+  // out of the 19th frame onto the gallery wall
+  {
+    const bloom = smoothstep(19.4, 21.6, u) * (1 - smoothstep(23.2, 24, u) * 0.35);
+    if (bloom > 0.005) {
+      const c = screen(cam, BIG_CENTER[0], BIG_CENTER[1]);
+      const rx = BIG.w * cam.zoom * 0.95;
+      const ry = BIG.h * cam.zoom * 1.9;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(c[0], c[1]);
+      ctx.scale(rx, ry);
+      const bg = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      bg.addColorStop(0, `rgba(255,203,116,${(0.15 * bloom).toFixed(3)})`);
+      bg.addColorStop(0.45, `rgba(236,172,88,${(0.06 * bloom).toFixed(3)})`);
+      bg.addColorStop(1, 'rgba(236,172,88,0)');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(0, 0, 1, 0, KIT.TAU); ctx.fill();
+      ctx.restore();
+    }
+  }
 
   // golden particles travel across the wall, between frames
   drawStarStream(ctx, cam, u);

@@ -137,19 +137,23 @@ export function drawEraCard(ctx, meta, u, opts = {}) {
     drawText(ctx, meta.year, x + 96, y + 103, { size: 11.5, font: FONT.serif, color: 'rgba(56,40,22,0.82)', letterSpacing: 1.5 });
     drawText(ctx, 'TONGSHENG ENTRY No.' + String(meta.index + 1).padStart(4, '0'), x + w - 20, y + 18, { size: 8.5, font: FONT.mono, color: 'rgba(84,54,28,0.55)', align: 'right', letterSpacing: 0.7 });
   } else if (style === 'construct') {
+    // The title lives entirely on the vermilion plate and the index on the
+    // black counter-plate, so no glyph ever lands black-on-black again.
     ctx.save();
     ctx.translate(x + 22, y + 15);
     ctx.rotate(-0.045);
     ctx.fillStyle = accent;
-    ctx.fillRect(-12, -8, 282, 112);
+    ctx.fillRect(-12, -8, 318, 112);
     ctx.fillStyle = '#11100d';
-    ctx.fillRect(155, -8, 300, 112);
+    ctx.fillRect(300, -8, 186, 112);
+    ctx.fillStyle = 'rgba(250,240,216,0.35)';
+    ctx.fillRect(-12, -8, 318, 2);
     ctx.restore();
-    drawText(ctx, meta.no, x + 22, y + 70, { size: 48, font: FONT.mono, weight: 800, color: '#f3e8cc', letterSpacing: 1 });
-    drawText(ctx, meta.zh, x + 93, y + 46, { size: 30, font: FONT.display, weight: 900, color: '#17140f', letterSpacing: 3, mark: `era-${meta.no}`, rotate: -0.03 });
-    drawText(ctx, meta.en.toUpperCase(), x + 96, y + 77, { size: 9.5, font: FONT.mono, weight: 700, color: 'rgba(28,22,16,0.8)', letterSpacing: 1.0, maxWidth: w - 120, rotate: -0.03 });
-    drawText(ctx, meta.year, x + 225, y + 46, { size: 13, font: FONT.mono, weight: 600, color: '#f2e8d2', letterSpacing: 1, mark: 'era-year' });
-    drawText(ctx, 'СДВИГ / 45°', x + 225, y + 70, { size: 9, font: FONT.mono, color: 'rgba(245,235,215,0.62)', letterSpacing: 1 });
+    drawText(ctx, meta.no, x + 300, y + 64, { size: 46, font: FONT.mono, weight: 800, color: '#f3e8cc', letterSpacing: 1, rotate: -0.045 });
+    drawText(ctx, meta.zh, x + 26, y + 46, { size: 27, font: FONT.display, weight: 900, color: '#fdf6e6', letterSpacing: 2.2, mark: `era-${meta.no}`, rotate: -0.045 });
+    drawText(ctx, meta.en.toUpperCase(), x + 28, y + 74, { size: 9, font: FONT.mono, weight: 700, color: 'rgba(255,248,232,0.84)', letterSpacing: 0.9, maxWidth: 268, rotate: -0.045 });
+    drawText(ctx, meta.year, x + 28, y + 100, { size: 11.5, font: FONT.mono, weight: 600, color: 'rgba(255,246,228,0.9)', letterSpacing: 1, mark: 'era-year', rotate: -0.045 });
+    drawText(ctx, 'СДВИГ 45°', x + 300, y + 100, { size: 9, font: FONT.mono, color: 'rgba(245,235,215,0.62)', letterSpacing: 1, rotate: -0.045 });
   } else if (style === 'woodcut') {
     ctx.save();
     ctx.translate(x, y); ctx.rotate(-0.01);

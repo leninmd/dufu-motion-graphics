@@ -199,7 +199,10 @@ export function drawSealImpact(ctx, u) {
   if (u < 4.0) return;
   const p = clamp01((u - 4.0) / 0.5);
   const impact = 1 - Math.abs(u - 4.0) / 0.2;
-  const cx = 1180, cy = 545;
+  // The seal lands in the clear band *below* the subtitle (block ends y≈522),
+  // so main title (210..366), subtitle (410..522) and seal (567..777) never
+  // intersect: 45 px of paper between each of the three decks.
+  const cx = 1180, cy = 676;
   ctx.save();
   // shock ring, ink dust
   const ringP = clamp01((u - 4.0) / 0.52);
@@ -240,21 +243,24 @@ export function drawSealImpact(ctx, u) {
   ctx.fillStyle = 'rgba(250,235,209,0.66)';
   ctx.fillText('TANG DYNASTY · STRESS TEST SUBJECT No. 001', cx, cy + 61);
   ctx.restore();
-  // cracks running down and out of the seal
+  // cracks running down and out of the seal (shortened so they stay inside the
+  // plate and never saw through the walker standing on the ground line)
   const crack = smoothstep(4.02, 4.5, u);
   ctx.strokeStyle = `rgba(32,24,15,${0.7 * crack})`;
   ctx.lineWidth = 2.3;
   ctx.beginPath();
   ctx.moveTo(cx - 210, cy + 102);
-  const crackPts = [[-186, 128], [-168, 178], [-146, 206], [-152, 268], [-118, 310], [-104, 380], [-71, 424], [-77, 493], [-58, 528]];
+  const crackPts = [[-186, 122], [-168, 158], [-146, 178], [-152, 214], [-118, 240], [-104, 274], [-71, 296], [-77, 326], [-58, 345]];
   for (const [dx, dy] of crackPts) ctx.lineTo(cx + dx * (0.2 + 0.8 * crack), cy + dy * (0.2 + 0.8 * crack));
   ctx.stroke();
   ctx.lineWidth = 1.1;
   ctx.beginPath();
   ctx.moveTo(cx + 190, cy + 101);
-  ctx.lineTo(cx + 213, cy + 158); ctx.lineTo(cx + 185, cy + 194); ctx.lineTo(cx + 201, cy + 255);
+  ctx.lineTo(cx + 213, cy + 146); ctx.lineTo(cx + 185, cy + 178); ctx.lineTo(cx + 201, cy + 214);
   ctx.stroke();
   ctx.restore();
+  // debug box: the physical plate of the seal (used by tools/qa-v6-1.mjs)
+  KIT.debug.markBox('intro-seal-block', cx - 322, cy - 105, 644, 210, { role: 'seal' });
   void p; void impact;
 }
 
@@ -262,7 +268,9 @@ export function drawGateAndTraveller(ctx, u) {
   if (u < 4.32) return;
   const appear = smoothstep(4.32, 4.7, u);
   const walkP = smoothstep(4.5, 5.95, u);
-  const x = lerp(1110, 1738, easeInOutCubic(walkP));
+  // start to the right of the seal's centred caption so the walking silhouette
+  // never chews through the seal's type
+  const x = lerp(1400, 1760, easeInOutCubic(walkP));
   const groundY = 1000;
   const scale = lerp(0.78, 0.92, smoothstep(4.4, 5.2, u));
   const phase = (u - 4.3) * Math.PI * 2;
@@ -370,21 +378,21 @@ export function drawIntroText(ctx, u) {
     ctx.globalAlpha = 0.96 * fade1;
     ctx.translate(slide, 0);
     ctx.fillStyle = '#1d1811';
-    roughRect(ctx, 690, 288, 1128, 194, { seed: 701, jitter: 2.4, steps: 18 });
+    roughRect(ctx, 690, 210, 1128, 156, { seed: 701, jitter: 2.4, steps: 18 });
     ctx.fill();
     // print bite marks and ink pooling
     ctx.fillStyle = 'rgba(237,226,204,0.07)';
     for (let i = 0; i < 110; i++) {
       const rx = 700 + KIT.unit(701, i, 1) * 1100;
-      const ry = 296 + KIT.unit(701, i, 2) * 178;
+      const ry = 218 + KIT.unit(701, i, 2) * 142;
       ctx.fillRect(rx, ry, 1 + KIT.unit(701, i, 3) * 4, 1);
     }
-    withClip(ctx, 700, 296, 1104, 178, () => {
+    withClip(ctx, 700, 218, 1104, 142, () => {
       const line = '人类自古以来就试图测试：一个理想主义者';
       const line2 = '能承受多少吨时代的灰尘。';
-      KIT.drawText(ctx, line, 760, 350, { size: 45, font: FONT.display, weight: 800, color: '#efe3ca', letterSpacing: 1.5, mark: 'intro-line-1' });
-      KIT.drawText(ctx, line2, 760, 420, { size: 45, font: FONT.display, weight: 800, color: '#efe3ca', letterSpacing: 1.5, mark: 'intro-line-1b' });
-      KIT.drawText(ctx, '01 /  HUMANITY HAS ALWAYS TESTED THE LOAD-BEARING CAPACITY OF AN IDEALIST.', 760, 465, { size: 9.4, font: FONT.mono, color: 'rgba(239,227,202,0.52)', letterSpacing: 1.25 });
+      KIT.drawText(ctx, line, 760, 264, { size: 43, font: FONT.display, weight: 800, color: '#efe3ca', letterSpacing: 1.5, mark: 'intro-line-1' });
+      KIT.drawText(ctx, line2, 760, 320, { size: 43, font: FONT.display, weight: 800, color: '#efe3ca', letterSpacing: 1.5, mark: 'intro-line-1b' });
+      KIT.drawText(ctx, '01 /  HUMANITY HAS ALWAYS TESTED THE LOAD-BEARING CAPACITY OF AN IDEALIST.', 760, 351, { size: 9.4, font: FONT.mono, color: 'rgba(239,227,202,0.52)', letterSpacing: 1.25 });
     });
     ctx.restore();
   }
@@ -398,15 +406,15 @@ export function drawIntroText(ctx, u) {
     ctx.globalAlpha = a;
     // red bar grows on the downbeat
     ctx.fillStyle = RED;
-    ctx.fillRect(736, 578, 6, 84 * easeOut(p2));
-    KIT.drawText(ctx, '——早在『精神内耗』这个词', 764, 600, {
-      size: 35, font: FONT.display, weight: 700, color: '#251e14', letterSpacing: 2, mark: 'intro-line-2',
+    ctx.fillRect(736, 410, 6, 78 * easeOut(p2));
+    KIT.drawText(ctx, '——早在『精神内耗』这个词', 764, 442, {
+      size: 32, font: FONT.display, weight: 700, color: '#251e14', letterSpacing: 2, mark: 'intro-line-2',
     });
-    KIT.drawText(ctx, '被发明之前的一千二百年。', 764, 652, {
-      size: 35, font: FONT.display, weight: 700, color: '#251e14', letterSpacing: 2,
+    KIT.drawText(ctx, '被发明之前的一千二百年。', 764, 486, {
+      size: 32, font: FONT.display, weight: 700, color: '#251e14', letterSpacing: 2, mark: 'intro-line-2b',
     });
-    KIT.drawText(ctx, '——《大唐诗史压力测试报告》，卷一（虚构书名）', 766, 724, {
-      size: 15, font: FONT.serif, weight: 500, color: 'rgba(56,43,27,0.66)', letterSpacing: 1.1, mark: 'intro-source',
+    KIT.drawText(ctx, '——《大唐诗史压力测试报告》，卷一（虚构书名）', 766, 516, {
+      size: 13.5, font: FONT.serif, weight: 500, color: 'rgba(56,43,27,0.66)', letterSpacing: 1.1, mark: 'intro-source',
     });
     ctx.restore();
   }
@@ -474,7 +482,7 @@ export function renderIntro(ctx, t, env = {}) {
   ctx.restore();
   KIT.frames.registrationMarks(ctx, 40, 40, W - 80, H - 80, { color: 'rgba(77,55,30,0.2)', len: 16, inset: 0 });
 
-  markText('intro-caption', '人类自古以来就试图测试：一个理想主义者能承受多少吨时代的灰尘。', 700, 300, 1100, 180, { size: 45 });
+  markText('intro-caption', '人类自古以来就试图测试：一个理想主义者能承受多少吨时代的灰尘。', 700, 222, 1100, 146, { size: 43 });
   if (u >= 4.0) {
     KIT.debug.markEraCard(null);
   }
