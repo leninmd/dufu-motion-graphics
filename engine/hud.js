@@ -44,7 +44,8 @@
       const kp = Ease.inOutCubic(clamp((since - 0.10) / 1.6));
       const km = lerp(kmFrom, cur.km, kp);
 
-      const line1 = `${cur.place} · ${cur.year} · ${cur.event}`;
+      if (DFS.dbg) DFS.dbg({ hud: { km, place: cur.place, year: cur.year, event: cur.event } });
+      const line1 = [cur.place, cur.year, cur.event].filter(Boolean).join(" · ");
       const line2 = `${DFS.km(km)} km`;
       const col = opts.dark ? T.colors.hudDark : T.colors.hudLight;
 

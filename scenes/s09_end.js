@@ -1,192 +1,207 @@
 /* =========================================================================
-   s09_end.js — 69.8–85.0s 沉郁收束
-   人生不相见 → 动如参与商 → 空江孤舟 → 「却把整个时代，写成了诗」
-   → 单字「诗」→ 大历五年冬 · 湘江 → 落版（杜甫 七一二—七七〇 · 诗圣印）
+   s09_end.js — 110.1–120.0s 终章 · 万古诗史
+   大雪落湘江，孤舟远去，舟中灯化作一滴金墨入水，江水成金。
+   绝笔：战血流依旧 / 军声动至今。钤印：诗史。
    ========================================================================= */
 (function (DFS) {
   'use strict';
   const { W, H, clamp, lerp, Ease } = DFS;
+  const V3 = DFS.V3;
+  const HUB = DFS.HUB;
   const T = DFS.THEME;
 
-  DFS.sceneRegistry['s09'] = class Scene09 {
-    draw(ctx, L, t) {
-      /* ---------- 时间线 ---------- */
-      const tColumns = clamp(L / 1.0);              // 双列诗
-      const tEmpty = clamp((L - 4.3) / 1.4);        // 双列淡出，只留江面
-      const tLines = clamp((L - 6.55) / 0.7);       // 结语两行
-      const tLineOut = clamp((L - 9.35) / 1.1);     // 结语化烟
-      const tOne = clamp((L - 9.85) / 0.5);         // 单字「诗」
-      const tBlack = clamp((L - 11.35) / 0.8);      // 转黑
-      const tCard = clamp((L - 12.05) / 1.0);       // 落版
-      const tSeal = clamp((L - 12.75) / 0.45);
+  DFS.sceneRegistry['s09'] = class Scene09V3 {
+    draw(ctx, L, t, ch) {
+      const st = DFS.STORY.texts;
+      const tSnow = clamp(L / 1.2);
+      const tGold = clamp((L - 2.6) / 2.2);        // 灯化金墨 → 江水成金
+      const pA = HUB.multiEntrance(L, 3.9, { duration: 1.1, rise: 26, blur: 9 });
+      const pB = HUB.multiEntrance(L, 4.35, { duration: 1.1, rise: 26, blur: 9 });
+      const tSeal = clamp((L - 5.1) / 0.5);
+      const pNote = HUB.multiEntrance(L, 6.0, { duration: 0.9, rise: 14, blur: 5 });
+      const tEnd = clamp((L - 9.2) / 0.7);
 
-      /* ---------- 1. 纸底 + 江面 ---------- */
-      DFS.drawPaper(ctx, { zoom: 1.03 });
-      DFS.drawGradientMesh(ctx, t, { c1: 'rgba(255,250,232,0.5)', c2: 'rgba(120,104,78,0.13)' });
+      V3.eight(ctx, t, {
+        void: true,
+        voidInner: '#0E1114', voidMid: '#07090A', voidOuter: '#020304',
+        grade: 'cold', grain: 0.5, vignette: 0.34, dustAlpha: 0.3,
+        l2: (c) => {
+          // 江面：冷灰的雪夜水面
+          const horizon = H * 0.52;
+          const g = c.createLinearGradient(0, horizon, 0, H);
+          g.addColorStop(0, 'rgba(30,36,40,0.9)');
+          g.addColorStop(0.45, 'rgba(20,26,30,0.95)');
+          g.addColorStop(1, 'rgba(10,14,17,1)');
+          c.fillStyle = g;
+          c.fillRect(0, horizon, W, H - horizon);
+          // 水面细纹
+          const r = DFS.rng(6611);
+          c.save();
+          for (let i = 0; i < 120; i++) {
+            const k = i / 120;
+            const y = horizon + Math.pow(k, 1.8) * (H - horizon);
+            const n = Math.round(lerp(90, 14, k));
+            for (let j = 0; j < n; j++) {
+              const x = ((j + r() * 0.9) / n) * W;
+              c.strokeStyle = `rgba(190,200,206,${0.02 + r() * 0.05})`;
+              c.lineWidth = 0.6 + k * 1.2;
+              c.beginPath();
+              c.moveTo(x, y);
+              c.lineTo(x + lerp(8, 60, k) * (0.5 + r()), y);
+              c.stroke();
+            }
+          }
+          c.restore();
+          // 金色江水（从舟下沉入的金墨扩散）
+          if (tGold > 0.001) {
+            c.save();
+            c.globalCompositeOperation = 'lighter';
+            const gg = c.createLinearGradient(0, horizon + 40, 0, H);
+            gg.addColorStop(0, `rgba(214,168,86,0)`);
+            gg.addColorStop(0.5, `rgba(214,168,86,${0.16 * tGold})`);
+            gg.addColorStop(1, `rgba(232,196,120,${0.26 * tGold})`);
+            c.fillStyle = gg;
+            c.fillRect(0, horizon, W, H - horizon);
+            // 金色流纹
+            const r2 = DFS.rng(9921);
+            for (let i = 0; i < 70; i++) {
+              const k = r2();
+              const y = horizon + Math.pow(k, 1.5) * (H - horizon);
+              const x = r2() * W;
+              const len = 40 + r2() * 220;
+              c.strokeStyle = `rgba(240,206,140,${(0.03 + r2() * 0.07) * tGold})`;
+              c.lineWidth = 0.8 + k * 2;
+              c.beginPath();
+              c.moveTo(x, y);
+              c.lineTo(x + len, y);
+              c.stroke();
+            }
+            c.restore();
+          }
+        },
+        l3: (c) => {
+          // 冷月辉
+          const g = c.createRadialGradient(W * 0.5, H * 0.16, 30, W * 0.5, H * 0.3, H * 0.7);
+          g.addColorStop(0, 'rgba(200,214,222,0.10)');
+          g.addColorStop(1, 'rgba(200,214,222,0)');
+          c.fillStyle = g;
+          c.fillRect(0, 0, W, H * 0.8);
+        },
+        l4: (c) => {
+          // 孤舟（远去）
+          const bx = lerp(W * 0.62, W * 0.70, clamp(L / 9.9));
+          const by = H * 0.615;
+          const scale = lerp(0.5, 0.34, clamp(L / 9.9));
+          c.save();
+          c.globalAlpha = 0.92;
+          DFS.boat(c, bx, by, scale, { t, alpha: 0.9, color: '12,14,16', figure: true, figureColor: '10,12,14' });
+          // 舟中灯
+          const lampA = 1 - clamp((L - 2.6) / 0.8);
+          if (lampA > 0.01) {
+            c.globalCompositeOperation = 'lighter';
+            const lg = c.createRadialGradient(bx + 16, by - 26, 0, bx + 16, by - 26, 46);
+            lg.addColorStop(0, `rgba(255,214,140,${0.85 * lampA})`);
+            lg.addColorStop(0.25, `rgba(255,190,100,${0.30 * lampA})`);
+            lg.addColorStop(1, 'rgba(255,190,100,0)');
+            c.fillStyle = lg;
+            c.beginPath();
+            c.arc(bx + 16, by - 26, 46, 0, Math.PI * 2);
+            c.fill();
+          }
+          // 灯火坠落成金墨
+          if (tGold > 0 && tGold < 1) {
+            const dropY = lerp(by - 26, by + 40, Ease.inCubic(tGold));
+            c.globalCompositeOperation = 'lighter';
+            const dg = c.createRadialGradient(bx + 16, dropY, 0, bx + 16, dropY, 16);
+            dg.addColorStop(0, `rgba(255,232,170,${0.9 * (1 - tGold * 0.4)})`);
+            dg.addColorStop(1, 'rgba(255,232,170,0)');
+            c.fillStyle = dg;
+            c.beginPath();
+            c.arc(bx + 16, dropY, 16, 0, Math.PI * 2);
+            c.fill();
+            // 入水涟漪
+            if (tGold > 0.6) {
+              const rp = (tGold - 0.6) / 0.4;
+              c.strokeStyle = `rgba(240,206,140,${0.5 * (1 - rp)})`;
+              c.lineWidth = 1.6;
+              c.beginPath();
+              c.ellipse(bx + 16, by + 40, 10 + rp * 160, (10 + rp * 160) * 0.24, 0, 0, Math.PI * 2);
+              c.stroke();
+            }
+          }
+          c.restore();
 
-      // 极淡的江面（留白里的水）
-      ctx.save();
-      ctx.globalAlpha = 0.5 + tEmpty * 0.3;
-      const sea = new DFS.Sea({ horizon: 0.70, dark: false });
-      sea.drawPaperSea(ctx, t, {});
-      ctx.restore();
-
-      /* ---------- 2. 双列诗 ---------- */
-      if (tEmpty < 1) {
-        ctx.save();
-        ctx.globalAlpha = 1 - Ease.inOutCubic(tEmpty);
-        DFS.verticalIn(ctx, '人生不相见', {
-          x: W * 0.60, y: H * 0.115, size: 74, weight: 400, family: T.fonts.kai,
-          color: 'rgba(28,21,10,0.92)', t: L, start: 0.35, stagger: 0.12, dur: 0.7, gap: 1.24
-        });
-        DFS.verticalIn(ctx, '动如参与商', {
-          x: W * 0.535, y: H * 0.115, size: 74, weight: 400, family: T.fonts.kai,
-          color: 'rgba(28,21,10,0.92)', t: L, start: 1.45, stagger: 0.12, dur: 0.7, gap: 1.24
-        });
-        // 落款小字
-        const ps = Ease.outExpo(clamp((L - 2.7) / 0.7));
-        ctx.globalAlpha = (1 - Ease.inOutCubic(tEmpty)) * ps * 0.55;
-        ctx.font = DFS.font(20, 400, T.fonts.mono);
-        ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(50,40,24,0.9)';
-        ctx.fillText('《赠卫八处士》', W * 0.455, H * 0.115 + 74 * 5 * 1.24 + 40);
-        ctx.restore();
-      }
-
-      /* ---------- 3. 空江：一叶小舟 ---------- */
-      if (L > 3.6) {
-        const p = Ease.outExpo(clamp((L - 3.6) / 1.4));
-        const drift = clamp((L - 3.6) / 9);
-        const bx = W * (0.30 + drift * 0.24);
-        const by = H * 0.775;
-        ctx.save();
-        ctx.globalAlpha = p * (1 - tBlack) * 0.9;
-        DFS.boat(ctx, bx, by, 0.42, { t, alpha: 0.9, color: '22,18,10', figure: true, figureColor: '20,16,9' });
-        // 水的倒影
-        ctx.globalAlpha = p * 0.25;
-        ctx.strokeStyle = 'rgba(60,50,32,0.6)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 3; i++) {
-          const yy = by + 16 + i * 9;
-          ctx.beginPath();
-          ctx.moveTo(bx - 40 + i * 8, yy);
-          ctx.lineTo(bx + 40 - i * 8, yy);
-          ctx.stroke();
+          // 风雪
+          c.save();
+          const r = DFS.rng(3388);
+          for (let i = 0; i < 420; i++) {
+            const x = ((r() * 1.2 - 0.1) + Math.sin(t * 0.4 + i) * 0.01) * W;
+            const y = ((r() + t * 0.035 * (0.5 + r())) % 1) * H;
+            const s = 0.8 + r() * 2.6;
+            c.globalAlpha = (0.25 + r() * 0.55) * tSnow;
+            c.fillStyle = 'rgba(238,244,248,0.9)';
+            c.beginPath();
+            c.arc(x + Math.sin(t * 0.7 + i) * 6, y, s, 0, Math.PI * 2);
+            c.fill();
+          }
+          c.restore();
+        },
+        l5: (c) => {
+          // 绝笔两句
+          if (pA.alpha > 0.01) {
+            c.save();
+            c.globalAlpha = pA.alpha;
+            V3.inkText(c, st.s09_a, {
+              x: W * 0.5, y: 300 - pA.dy * 0.5, size: 88, weight: 900,
+              family: T.fonts.heavy, color: 'rgba(240,236,222,0.97)', tracking: 10
+            });
+            DFS.dbgBox('s09_a', W * 0.5 - 380, 240, W * 0.5 + 380, 360);
+            c.restore();
+          }
+          if (pB.alpha > 0.01) {
+            c.save();
+            c.globalAlpha = pB.alpha;
+            V3.inkText(c, st.s09_b, {
+              x: W * 0.5, y: 396 - pB.dy * 0.5, size: 88, weight: 900,
+              family: T.fonts.heavy, color: 'rgba(240,236,222,0.97)', tracking: 10
+            });
+            DFS.dbgBox('s09_b', W * 0.5 - 380, 336, W * 0.5 + 380, 456);
+            c.restore();
+          }
+          // 钤印「诗史」
+          if (tSeal > 0.001) {
+            HUB.inkStampSplash(c, W * 0.5, 560, Ease.outExpo(tSeal), 77, {
+              size: 132, text: st.s09_seal, chars: 'v', rotate: -0.03, color: T.colors.cinnabar
+            });
+            DFS.dbgBox('s09_seal', W * 0.5 - 90, 494, W * 0.5 + 90, 626);
+          }
+          if (pNote.alpha > 0.01) {
+            c.save();
+            c.globalAlpha = pNote.alpha * 0.7;
+            V3.inkText(c, st.s09_note, {
+              x: W * 0.76, y: 930 - pNote.dy * 0.3, size: 28, weight: 400,
+              family: T.fonts.serif, color: 'rgba(210,204,188,0.85)'
+            });
+            c.globalAlpha = pNote.alpha * 0.45;
+            V3.inkText(c, st.s09_note_src, {
+              x: W * 0.79, y: 968 - pNote.dy * 0.2, size: 18, weight: 400,
+              family: T.fonts.serif, color: 'rgba(192,186,170,0.8)'
+            });
+            DFS.dbgBox('s09_note', W * 0.62, 900, W * 0.95, 985);
+            c.restore();
+          }
         }
-        ctx.restore();
-      }
+      });
 
-      /* ---------- 4. 结语两行 ---------- */
-      if (tLines > 0.001 && tLineOut < 1) {
-        const a = (1 - tLineOut);
+      if (tEnd > 0) {
         ctx.save();
-        ctx.globalAlpha = a;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const l1 = '他没能致君尧舜上，';
-        const l2 = '却把整个时代，写成了诗。';
-        const chars1 = Array.from(l1);
-        const chars2 = Array.from(l2);
-        ctx.font = DFS.font(52, 400, T.fonts.serif);
-        chars1.forEach((c, i) => {
-          const pp = Ease.outExpo(clamp((L - 6.55 - i * 0.032) / 0.6));
-          ctx.globalAlpha = a * pp * 0.9;
-          ctx.fillStyle = 'rgba(38,30,16,0.92)';
-          ctx.fillText(c, W * 0.5 + (i - (chars1.length - 1) / 2) * 56, H * 0.33 + (1 - pp) * 14);
-        });
-        ctx.font = DFS.font(56, 500, T.fonts.heavy);
-        chars2.forEach((c, i) => {
-          const pp = Ease.outExpo(clamp((L - 7.15 - i * 0.034) / 0.6));
-          ctx.globalAlpha = a * pp * 0.96;
-          ctx.fillStyle = i >= 8 ? T.colors.cinnabar : 'rgba(28,21,10,0.95)';
-          ctx.fillText(c, W * 0.5 + (i - (chars2.length - 1) / 2) * 60, H * 0.44 + (1 - pp) * 14);
-        });
-        ctx.restore();
-
-        // 化烟：两层粒子（复用文字采样后消散）
-        if (tLineOut > 0.01) {
-          ctx.save();
-          DFS.particleText(ctx, '诗', {
-            x: W * 0.5 + 200, y: H * 0.44, size: 56, weight: 500, family: T.fonts.heavy,
-            step: 4, seed: 71, assemble: 1, dissolve: tLineOut, wind: 1,
-            color: '200,54,36', sizePx: 2.2, alpha: 0.9, t
-          });
-          ctx.restore();
-        }
-      }
-
-      /* ---------- 5. 单字「诗」 ---------- */
-      if (tOne > 0.001 && tBlack < 0.98) {
-        const p = Ease.outExpo(tOne);
-        ctx.save();
-        ctx.globalAlpha = p * (1 - tBlack) * 0.95;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = DFS.font(96, 400, T.fonts.serif);
-        ctx.fillStyle = 'rgba(30,23,11,0.95)';
-        ctx.fillText('诗', W * 0.5, H * 0.50);
-        ctx.restore();
-      }
-
-      /* ---------- 6. 转黑 ---------- */
-      if (tBlack > 0.001) {
-        ctx.save();
-        ctx.globalAlpha = Ease.inOutCubic(tBlack);
-        ctx.fillStyle = '#070705';
-        ctx.fillRect(0, 0, W, H);
-        ctx.restore();
-      }
-
-      /* ---------- 7. 落版 ---------- */
-      if (tCard > 0.001) {
-        const p = Ease.outExpo(tCard);
-        ctx.save();
-        ctx.globalAlpha = p;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        // 小字：时间地点
-        ctx.font = DFS.font(24, 400, T.fonts.serif);
-        ctx.fillStyle = 'rgba(206,200,184,0.66)';
-        ctx.fillText(DFS.cnNum(770) + ' 年冬　湘江　一条船', W * 0.5, H * 0.335);
-        // 主字
-        ctx.globalAlpha = p * 0.98;
-        ctx.font = DFS.font(132, 500, T.fonts.heavy);
-        ctx.fillStyle = 'rgba(240,235,220,0.97)';
-        ctx.fillText('杜甫', W * 0.5, H * 0.455);
-        // 生卒
-        ctx.globalAlpha = p * 0.75;
-        ctx.font = DFS.font(30, 400, T.fonts.mono);
-        ctx.fillStyle = 'rgba(214,208,190,0.8)';
-        ctx.fillText('712 — 770', W * 0.5, H * 0.585);
-        // 朱线
-        ctx.globalAlpha = p * 0.9;
-        ctx.fillStyle = T.colors.cinnabar;
-        ctx.fillRect(W * 0.5 - 120 * p, H * 0.545, 240 * p, 2.2);
-        ctx.restore();
-
-        // 诗圣印
-        if (tSeal > 0.001) {
-          const sp = Ease.outExpo(tSeal);
-          ctx.save();
-          ctx.globalAlpha = sp;
-          DFS.seal(ctx, {
-            x: W * 0.5 + 210, y: H * 0.455 + 12, size: 74 * (1.4 - 0.4 * sp),
-            text: '诗圣', chars: 'multi', alpha: sp, seed: 8, rotate: 0.04
-          });
-          ctx.restore();
-        }
-      }
-
-      /* ---------- 8. 收尾淡出 ---------- */
-      if (L > 14.5) {
-        ctx.save();
-        ctx.globalAlpha = clamp((L - 14.5) / 0.7);
-        ctx.fillStyle = '#050504';
+        ctx.globalAlpha = Ease.inOutCubic(tEnd);
+        ctx.fillStyle = '#030304';
         ctx.fillRect(0, 0, W, H);
         ctx.restore();
       }
     }
 
-    hudDark(L) { return L > 11.3; }
+    hudDark() { return true; }
   };
 })(window.DFS);

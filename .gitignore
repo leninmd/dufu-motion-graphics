@@ -8,6 +8,23 @@ output/cmp/
 output/*.log
 output/dufu_v1.mp4
 
+# V2 中间产物
+output/v2_work/
+output/v2_qa/
+output/v2_release/*.mp4
+!output/v2_release/dufu_v2_preview_720p.mp4
+!output/v2_release/dufu_v2_share_1080p.mp4
+output/v2_release/*.log
+
+# V3 中间产物（母版 357MB 只留本地）
+output/v3_work/
+output/v3_qa/
+output/v3_release/dufu_v3_silent_master.mp4
+output/v3_release/*.log
+
+# ---- 第三方参考仓库（clone 下来拆解用，不入库） ----
+vendor/reference-repos/
+
 # ---- 字体（68MB，用 tools/fetch_fonts.py 获取） ----
 assets/fonts/
 
@@ -20,8 +37,9 @@ sushi.mp4
 # ---- 研究中间帧（保留 sheets 与文档） ----
 research/frames/
 
-# ---- 缓存 ----
+# ---- 缓存与一次性补丁脚本 ----
 audio/cache/
+render/patch*.py
 __pycache__/
 *.pyc
 .playwright/
