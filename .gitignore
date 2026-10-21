@@ -13,6 +13,7 @@ output/v2_work/
 output/v2_qa/
 output/v2_release/*.mp4
 !output/v2_release/dufu_v2_preview_720p.mp4
+!output/v2_release/dufu_v2_share_1080p.mp4
 output/v2_release/*.log
 
 # V3 中间产物（母版 357MB 只留本地）
