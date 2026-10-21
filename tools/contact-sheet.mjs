@@ -29,6 +29,14 @@ const cols = Math.max(2, parseInt(a.cols || '6', 10));
 const thumb = Math.max(220, parseInt(a.thumb || '480', 10));
 const only = a.scenes ? String(a.scenes).split(',').map((x) => parseInt(x, 10)).filter((n) => n >= 1 && n <= 18) : null;
 const mode = a.eras ? 'eras' : 'beats';
+// Hand-picked high points for the final 18-era sheet. A gallery panel should
+// show each era at its most legible / spectacular, not necessarily at the
+// freeze-frame used for the outro wall.
+const HIGHLIGHTS = {
+  1: 2.7, 2: 3.5, 3: 3.15, 4: 2.85, 5: 2.95, 6: 2.45,
+  7: 2.6, 8: 2.85, 9: 3.2, 10: 3.25, 11: 3.4, 12: 2.85,
+  13: 3.35, 14: 4.35, 15: 3.25, 16: 2.8, 17: 2.8, 18: 3.2,
+};
 const outFile = path.resolve(ROOT, a.out || (mode === 'eras'
   ? 'output/v6_pelican_paradigm/contact_sheet_18_eras.png'
   : 'output/v6_qa/contact_sheet_beats.png'));
@@ -54,7 +62,7 @@ for (const i of scenes) {
   const spec = (await import('../src/main/manifest.js')).SCENE_SPECS[i];
   const start = 6 + i * 6;
   if (mode === 'eras') {
-    const u = spec.freezeU ?? 2.6;
+    const u = a.u ? parseFloat(a.u) : (HIGHLIGHTS[i + 1] ?? spec.freezeU ?? 2.6);
     items.push({ i, u, t: start + u, label: `${spec.no}  ${spec.zh}`, sub: `HIGHLIGHT · u ${u.toFixed(2)}s · ${spec.year}` });
   } else {
     const beats = [

@@ -154,3 +154,28 @@ node tools/contact-sheet.mjs --eras          # final 18-era sheet
 
 Large frame folders, WAV masters, and MP4 masters are intentionally git-ignored;
 the source and deterministic tools rebuild them.
+
+## 9. Build record
+
+| Step | Result |
+|---|---|
+| Frame render | 8,280 / 8,280 JPEG, **0 failed**, 316.8 s at 26.14 fps with 4 Chromium workers |
+| Contact sheet | 54-frame beat sheet and 18-era highlight sheet |
+| QA | `0 errors` · every era double-rendered with identical hash · all crossings rendered |
+| Score | 138.000 s · 48 kHz stereo · peak −1.07 dBFS · RMS −21.88 dBFS · 124.2 s synthesis |
+| Encode | H.264 High / yuv420p / BT.709 · 60 fps · AAC 224 kbps |
+
+Render workers are intentionally restarted every 1,800 frames; the renderer supports
+out-of-order/resumable workers because every scene is a pure function of time.
+
+### Reproducibility notes
+
+- The Matter.js pre-bake is a checked-in JSON asset (`src/generated/collapse.js`);
+  frame 14 never runs live physics.
+- The score is deterministic apart from browser Web Audio render scheduling
+  (which does not affect the sample values at a given sample index).
+- `contact-sheet.mjs` uses the same page API as the renderer, so a panel that
+  appears in the sheet is exactly the frame that encodes into the film.
+- The preview's audio path first loads `output/audio/mix_v6.wav`; if it is absent
+  it falls back to the same `OfflineAudioContext` score, so the preview never
+  silently loses sound.

@@ -18,6 +18,7 @@
     "sheet": "node tools/contact-sheet.mjs --eras --out output/v6_pelican_paradigm/contact_sheet_18_eras.png",
     "sheet:beats": "node tools/contact-sheet.mjs",
     "qa": "node tools/qa-gate.mjs",
+    "delivery": "node tools/delivery-report.mjs",
     "build": "npm run prebake && npm run audio && npm run render && npm run encode && npm run sheet"
   },
   "devEngines": {

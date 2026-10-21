@@ -1,7 +1,105 @@
-# 杜甫 · 确定性代码渲染短片（V1 / V2 / V3 / V4）
+# 少陵测试 · The Du Fu Test（V6）
 
-一支关于杜甫（712—770）的中文动态图形短片，做了四版。**每一帧都由代码算出来**——没有一张外部图片或视频素材，
-纸纹、墨迹、活字、皴法群山、界画广厦、金石断碑全部是 Canvas 逐帧程序化绘制。
+> 人类自古以来就试图用代码编译苦难。
+>
+> *Since time immemorial, humankind has tried to compile suffering.*
+
+一支 **2 分 18 秒 / 60 fps / 1,920 × 1,080** 的纯代码动画短片。全片 **8,280 帧**、**69 小节 @ 120 BPM**，没有一张外部图片、没有一帧手绘、没有一句机械 TTS 人声：画面由 Canvas 2D 逐帧计算，配乐由 Web Audio `OfflineAudioContext` 合成，第 14 版块的刚体坍塌由 Matter.js 离线预烘焙。
+
+故事只有一条线：一个背着诗卷的行者杜甫，沿一条贯穿全片的 4,739 公里地平线，穿过 18 个时代／媒介，最后在 2026 年的深色代码编辑器里被重新写成漫天星辰。
+
+## 交付物
+
+| 产物 | 路径 |
+|---|---|
+| 交互式预览 | [`preview/index.html`](preview/index.html) · `node tools/server.mjs 5180` 后打开 |
+| 1080p 成片 | `output/v6_pelican_paradigm/dufu_test_1080p.mp4` |
+| 720p 预览版 | `output/v6_pelican_paradigm/dufu_test_720p_preview.mp4` |
+| 18 时代接触表 | `output/v6_pelican_paradigm/contact_sheet_18_eras.png` |
+| 54 格三小节核查表 | `output/v6_qa/contact_sheet_beats.png` |
+| QA 报告 | `output/v6_qa/qa_report.json` |
+| 完整工程记录 | [`docs/v6-production.md`](docs/v6-production.md) |
+| 分镜简报 | [`briefs/`](briefs/) |
+
+## 18 个版块
+
+| # | 版块 | 年份 · 里程 | 计算艺术核心 |
+|---:|---|---|---|
+| 01 | 汉唐石刻拓片 | 712 · 0 km | 阈值腐蚀式拓片、花岗岩噪点、白线车马 |
+| 02 | 吴道子白描 | 731 · 420 km | 湍流贝塞尔飘带、可变宽墨线、一笔狂草 |
+| 03 | 三维水墨点云 | 736 · 705 km | 35,000 点正交点云，90° 坍缩成孤峰 |
+| 04 | 盛唐泥金界画 | 746 · 1,037 km | 一点透视宫门、1,600 字三维活字、宫门焊死 |
+| 05 | 宋代尺页账簿 | 751 · 1,037 km | 宋代尺页、筹算符号、十字物理压弯驴背 |
+| 06 | 构成主义切割 | 755 · 1,150 km | 硬边构成、鎏金巨字挤压、寒霜碎片 |
+| 07 | 表现主义木刻 | 755冬 · 1,420 km | 刀痕排线、磁带 0.7937× 熔毁、四拍跳针、裂谷 |
+| 08 | 金属球体挤压 | 757 · 1,880 km | 260 颗 PBR 暗金球、预计算堆积、家书压成窄缝 |
+| 09 | 关中镂空皮影 | 759 · 2,600 km | 10 fps 关节皮影、可见操纵杆、空铁丝 |
+| 10 | 离屏粒子草堂 | 761 · 3,100 km | 8,000 汉字粒子屋顶、γ(t)=0.012× 子弹时间、雨珠静止 |
+| 11 | 北宋巨碑山水 | 766 · 3,880 km | 分形皴法巨碑、15× 微距推镜、人如 8 像素 |
+| 12 | 八大山人写意 | 768 · 4,350 km | 85% 留白、正弦法线水面 shader、180 粒子沙鸥 |
+| 13 | 绿色荧光示波器 | 770 · 4,739 km | 圆形 CRT、余辉、ECG → 李萨如 → 绿字 |
+| 14 | 刚体物理坍塌 | 跨时空 | Matter.js 预烘焙 64 体文字废墟、朱砂圈选 |
+| 15 | 像素烂牌局 | 人生 | 10 fps 像素血条、3D 透视翻牌、金色暴击 |
+| 16 | 千禧年桌面 | 2000s | 虚构 Y2K 系统、256 色抖动、踩点抖窗 |
+| 17 | 竖屏弹幕风暴 | 2020s | 9:16 手机、虚构短视频 UI、成百上千条弹幕 |
+| 18 | 现代代码美学 | 2026 | 深色 IDE 十六分音符打字、实时编译、1,455 星 |
+
+## 工程结构
+
+```text
+src/beat/clock.js       120 BPM · 69 小节 · 18 个版块的时间唯一真相
+src/kit/                math / canvas / paper / ink-engine / type / geometry3d
+                        particles / frames / hud / debug
+src/rig/dufu-rig.js     一套连续的行者 / 瘦驴 / 孤舟参数化木偶
+src/scenes/scene_XX.js  18 个纯函数场景：renderAt(ctx, u, beat, env)
+src/main/               manifest · film · intro · outro · app · preview-ui
+audio/                  Web Audio DSP · 乐器 · 138 s 程序化配乐 · WAV 导出
+tools/                  contact-sheet · qa-gate · render · encode · shot · prebake
+briefs/                 每版块美术与算法简报 + Scene API
+preview/index.html      审片台式交互预览
+film.html               1920×1080 纯净渲染面
+```
+
+## 运行
+
+```powershell
+pnpm install
+
+# 交互式预览（带时间轴、节拍灯、真实 Web Audio 配乐）
+node tools/server.mjs 5180
+# 打开 http://127.0.0.1:5180/preview/
+
+# 完整流水线
+node tools/prebake-collapse.mjs        # 用 Matter.js 预烘焙第 14 版块
+node audio/synth-score.mjs             # 生成 output/audio/mix_v6.wav
+node tools/render.mjs --workers 4 --resume
+node tools/encode.mjs
+node tools/contact-sheet.mjs --eras --out output/v6_pelican_paradigm/contact_sheet_18_eras.png
+node tools/qa-gate.mjs
+```
+
+或者 `npm run build`。
+
+## 确定性约束
+
+- 场景是 `renderAt(ctx, u, beat, env)` 的纯函数；没有 `Math.random()`、`Date.now()`、挂钟时间或无种子物理。
+- 所有随机数来自 `mulberry32` / `hash` / `unit`；静态纹理用 `KIT.layer` 缓存。
+- 同一时刻两次渲染的像素哈希一致；`tools/qa-gate.mjs` 对 18 个版块做双渲染哈希、文字框边界、HUD 单调里程和所有过框时刻的校验。
+- 渲染输出为 60 fps；第 09、15、16 版块内部的皮影／像素／窗口动作被有意量化为 10 fps，而全局镜头仍为 60 fps。
+
+## 音乐
+
+一串原创五声羽调动机 `A4 C5 D5 E5 G5 E5 D5 C5 A4` 贯穿全片。每个版块换一种程序合成音色：大提琴、古琴、编钟、琵琶、笛、箫、堂鼓、示波器正弦、芯片音乐、MIDI 弹窗、Lo-fi、钢琴——全部由 Web Audio 实时合成，没有采样与录音。第 07 版块的盛唐磁带先以 151.2 BPM、+4 半音渲染，再以 `playbackRate → 0.7937`、0.6 Hz 抖动和四拍跳针播放。
+
+## 素材与许可
+
+**片中无一笔外部图像、无一段外部音频。** 代码、画面、音乐均为本项目原创。第三方工具、字体和架构参考的许可见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+
+---
+
+# 历史版本（V1–V4）
+
+一支关于杜甫（712—770）的中文动态图形短片，做了四版。**每一帧都由代码算出来**——没有一张外部图片或视频素材，纸纹、墨迹、活字、皴法群山、界画广厦、金石断碑全部是 Canvas 逐帧程序化绘制。
 
 | 版本 | 时长 / 帧率 | 声音 | 文字 | 成片（仓库内） |
 |---|---|---|---|---|
@@ -26,28 +124,17 @@
 
   **完整手术记录见 [docs/v4-upgrade-report.md](docs/v4-upgrade-report.md)。**
 
-## 快速开始
+## 历史版本快速开始
 
 ```powershell
-python tools/fetch_fonts.py                 # 四款字体（本机复制或下载）
+python tools/fetch_fonts.py
 python -m pip install numpy opencv-python playwright
 python -m playwright install chromium
-# ffmpeg：把 imageio_ffmpeg 自带的二进制复制成 tools/ffmpeg.exe（详见 docs/README.md）
-
-python -m http.server 8000                  # 浏览器打开 http://127.0.0.1:8000 实时预览
-powershell -ExecutionPolicy Bypass -File .\run_all_v4.ps1   # V4 一键重建（音轨 → 渲染 → 编码 → 质检）
+python -m http.server 8000
+powershell -ExecutionPolicy Bypass -File .\run_all_v4.ps1
 ```
 
-单步：
-
-```powershell
-python audio/build_audio_v4.py                              # 88s 音轨
-python render/render4.py frames --out output/v4_work/frames --fps 60
-powershell -ExecutionPolicy Bypass -File .\encode_v4.ps1     # 母版 + 分享版 + 720p
-python render/qa_probe_v4.py                                # 22 项质量门
-```
-
-## 结构
+## 历史版本结构
 
 ```
 storyboard.json / storyboard.v3.json / storyboard.v4.json   三代剧本（单一事实来源）
@@ -62,7 +149,7 @@ audio/build_audio_v4.py  Karplus-Strong 古琴 + 堂鼓 + 音画同步
 docs/                    分镜脚本、配方、引文考据、版本档案、V4 手术记录
 ```
 
-## 设计约束
+## 设计约束（历史版本）
 
 * **确定性**：禁用 `Math.random` / `Date.now` / 挂钟时间，随机数一律来自固定种子；同一时间点两次渲染结果一致，可乱序并发、断点续渲。
 * **五层**：纸 / 资产 / 大气 / 微尘 / 排版 / 调色 / 颗粒——每一层都有预算，全屏混合的东西一律先打折。
@@ -77,8 +164,6 @@ docs/                    分镜脚本、配方、引文考据、版本档案、V
 2. 8MB 原始帧别经 HTTP 回传再进 ffmpeg：管道背压会让截图卡在 25 秒/帧。逐帧写盘、渲染与编码解耦。
 3. 内存紧张时每 120 帧重启一次 Chromium，否则堆增长会让渲染逐步停摆。
 4. **探针会骗人**。V3 的 17 项断言全绿，成片依然"看不下去"——
-   因为它们只能测"有没有黑屏"，测不出"满屏铆钉没有一寸留白"。
-   V4 的留白率门控一上，两个"CG 感"镜头立刻被判死并被重写。
+   因为它们只能测"有没有黑屏"，测不出"满屏铆钉没有一寸留白"。V4 的留白率门控一上，两个"CG 感"镜头立刻被判死并被重写。
 
-详见 [docs/版本档案.md](docs/版本档案.md)、[docs/README.md](docs/README.md)、[docs/storyboard.md](docs/storyboard.md)、
-[docs/v4-upgrade-report.md](docs/v4-upgrade-report.md)、[docs/recipe.json](docs/recipe.json)。
+详见 [docs/版本档案.md](docs/版本档案.md)、[docs/README.md](docs/README.md)、[docs/storyboard.md](docs/storyboard.md)、[docs/v4-upgrade-report.md](docs/v4-upgrade-report.md)、[docs/recipe.json](docs/recipe.json)。

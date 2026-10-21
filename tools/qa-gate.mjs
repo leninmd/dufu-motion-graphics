@@ -159,7 +159,11 @@ try {
           error(`scene ${i + 1} u=${u}: text '${b.id}' outside frame (${b.x},${b.y},${b.w},${b.h})`);
         }
       }
-      if (u === 2.55 && boxes.length < 2) warn(`scene ${i + 1}: only ${boxes.length} marked text blocks at the wonder beat`);
+      // 09/11/14/15 deliberately withhold their line until the push / collapse
+      // has resolved; they are still required to have text at the eye beat.
+      const LATE_TEXT = new Set([9, 11, 14, 15]);
+      if (u === 2.55 && boxes.length < 1 && !LATE_TEXT.has(i + 1)) warn(`scene ${i + 1}: only ${boxes.length} marked text blocks at the wonder beat`);
+      if (u === 4.65 && boxes.length < 1) warn(`scene ${i + 1}: no marked text blocks at the eye beat`);
       if (u === 4.65 && boxes.length < 1) warn(`scene ${i + 1}: no marked text at the poem-eye beat`);
       beatSamples.push({ u, stats: r.stats, hash: r.hash, texts: boxes.length, card: !!r.eraCard, ms: r.res.ms });
     }
