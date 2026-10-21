@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>少陵测试 · Offline Audio Surface</title>
+  <style>
+    html,body{margin:0;height:100%;background:#080706;color:#e8dcc4;font:12px "Cascadia Mono",monospace}
+    main{display:grid;place-items:center;height:100%;letter-spacing:.2em}
+    .s{width:54px;height:54px;border:1px solid #a62a22;display:grid;place-items:center;color:#c23a2b;font:700 18px "Noto Serif SC",serif;margin:0 auto 20px;transform:rotate(-2deg)}
+  </style>
+</head>
+<body>
+  <main><div><div class="s">少陵</div><div>OFFLINE AUDIO SURFACE · WEB AUDIO</div></div></main>
+  <script type="module">
+    // The tool drives `import('/audio/score.js')` from Playwright. This page
+    // exists so the OfflineAudioContext runs with a real document origin.
+    window.__AUDIO_SURFACE_READY = true;
+    window.READY = true;
+  </script>
+</body>
+</html>

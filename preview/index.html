@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0907">
+  <title>少陵测试 · The Du Fu Test — 交互式预览</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0907'/%3E%3Crect x='5' y='5' width='22' height='22' fill='none' stroke='%23c23a2b' stroke-width='1.5'/%3E%3Ctext x='16' y='21' font-family='serif' font-size='12' fill='%23e05643' text-anchor='middle'%3E%E5%B0%91%E9%99%B5%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <link rel="stylesheet" href="/styles/preview.css">
+</head>
+<body>
+  <div class="boot" id="boot">
+    <div class="boot-inner">
+      <div class="boot-seal">少陵</div>
+      <h2>正在展开四千七百三十九公里</h2>
+      <p>THE DU FU TEST<br>18 ERAS · 69 BARS · 8,280 FRAMES</p>
+      <div class="progress"></div>
+      <div class="fine" id="boot-fine">LOADING THE ARCHIVE · 120 BPM</div>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="masthead">
+      <div class="brand">
+        <div class="seal" aria-hidden="true">少陵</div>
+        <div>
+          <h1>少陵测试</h1>
+          <div class="latin">THE DU FU TEST · A DETERMINISTIC CODE FILM</div>
+        </div>
+      </div>
+      <div class="meta" aria-label="作品信息">
+        <div class="item"><span>FORMAT</span><strong>1920 × 1080</strong><span>16:9 · 60 FPS</span></div>
+        <div class="item"><span>DURATION</span><strong>02:18.00</strong><span>69 BARS · 120 BPM</span></div>
+        <div class="item"><span>DISTANCE</span><strong id="meta-distance">0 KM</strong><span>18 ERAS + 1 EMPTY SEAT</span></div>
+        <div class="vert" aria-hidden="true">诗史长卷 · 无一笔外物</div>
+      </div>
+    </header>
+
+    <main class="theatre">
+      <div class="stage-wrap" id="stage-wrap">
+        <canvas id="stage" width="1920" height="1080" aria-label="《少陵测试》动画画面"></canvas>
+        <div class="stage-idle" id="stage-idle">
+          <div class="play-big" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 7l9 5-9 5z" fill="currentColor" stroke="none"/></svg>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="deck">
+      <section class="now" aria-live="polite">
+        <div class="no" id="now-no">序</div>
+        <div style="min-width:0">
+          <div class="title" id="now-title">一本正经的史料反差</div>
+          <div class="sub" id="now-sub">PROLOGUE · 00:00–00:06 <em>·</em> 0 KM</div>
+        </div>
+      </section>
+
+      <section class="transport" aria-label="播放控制">
+        <div class="timeline-row">
+          <span class="timecode" id="time-now">00:00:00</span>
+          <div class="scrub" id="scrub">
+            <div class="era-ticks" id="era-ticks" aria-hidden="true"></div>
+            <input id="seek" type="range" min="0" max="138" step="0.0166667" value="0" aria-label="影片时间轴">
+          </div>
+          <span class="timecode dim" id="time-total">02:18:00</span>
+        </div>
+        <div class="transport-buttons">
+          <div class="buttons">
+            <button class="btn" id="btn-prev" title="上一版块 [Shift+←]" aria-label="上一版块">
+              <svg viewBox="0 0 24 24"><path d="M18 6l-9 6 9 6V6z"/><path d="M6 5v14"/></svg>
+            </button>
+            <button class="btn play" id="btn-play" title="播放 / 暂停 [Space]" aria-label="播放">
+              <svg id="icon-play" viewBox="0 0 24 24"><path d="M8.5 6.5l10 5.5-10 5.5z" fill="currentColor" stroke="none"/></svg>
+              <svg id="icon-pause" class="is-hidden" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke-width="2.4"/></svg>
+            </button>
+            <button class="btn" id="btn-next" title="下一版块 [Shift+→]" aria-label="下一版块">
+              <svg viewBox="0 0 24 24"><path d="M6 6l9 6-9 6V6z"/><path d="M18 5v14"/></svg>
+            </button>
+            <button class="btn" id="btn-restart" title="回到序章 [Home]" aria-label="回到开头">
+              <svg viewBox="0 0 24 24"><path d="M5 5v14M20 6l-9 6 9 6V6z"/></svg>
+            </button>
+            <button class="btn" id="btn-fullscreen" title="全屏 [F]" aria-label="全屏">
+              <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+            </button>
+          </div>
+          <span class="hint">SPACE PLAY · ← → FRAME · SHIFT ← → ERA · M SOUND</span>
+          <div class="volume-wrap">
+            <button class="btn" id="btn-sound" title="声音 [M]" aria-label="开关声音" style="width:26px;height:26px">
+              <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 010 7"/></svg>
+            </button>
+            <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="音量">
+          </div>
+        </div>
+      </section>
+
+      <aside class="status">
+        <div class="line"><span class="beat-lamp" id="beat-lamp"></span><span id="bar-readout">BAR 01 · BEAT 1</span></div>
+        <div class="line"><span class="fps-badge">60 DETERMINISTIC FPS</span></div>
+        <div class="sound-state" id="sound-state">配乐由 Web Audio 程序生成 · 等待合成</div>
+      </aside>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main/preview-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "name": "dufu-test",
+  "version": "6.0.0",
+  "description": "《少陵测试》The Du Fu Test — a deterministic 138 s, 18-era, pure-code animated film.",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node tools/server.mjs 5180",
+    "serve": "node tools/server.mjs 5180",
+    "prebake": "node tools/prebake-collapse.mjs",
+    "audio": "node audio/synth-score.mjs",
+    "render": "node tools/render.mjs --workers 4 --resume",
+    "encode": "node tools/encode.mjs",
+    "sheet": "node tools/contact-sheet.mjs --eras --out output/v6_pelican_paradigm/contact_sheet_18_eras.png",
+    "sheet:beats": "node tools/contact-sheet.mjs",
+    "qa": "node tools/qa-gate.mjs",
+    "build": "npm run prebake && npm run audio && npm run render && npm run encode && npm run sheet"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.5.0",
+      "onFail": "download"
+    }
+  },
+  "devDependencies": {
+    "matter-js": "^0.20.0",
+    "playwright-core": "^1.64.1"
+  }
+}

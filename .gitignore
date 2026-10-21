@@ -55,3 +55,15 @@ __pycache__/
 *.pyc
 .playwright/
 node_modules/
+
+# ---- V6 《少陵测试》 ----
+output/v6_work/
+output/v6_qa/
+output/v6_smoke/
+output/audio/mix_v6.wav
+output/audio/mix_v6.analysis.json
+output/audio/test*.wav
+output/v6_pelican_paradigm/*.mp4
+output/v6_pelican_paradigm/contact_sheet_*.png
+output/v6_stills/
+

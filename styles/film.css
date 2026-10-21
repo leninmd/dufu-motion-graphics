@@ -1,0 +1,65 @@
+/* Render page: the canvas must be pixel-exact and nothing else may appear. */
+* { box-sizing: border-box; }
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #050505;
+  overflow: hidden;
+}
+body.film-page {
+  display: block;
+}
+#stage {
+  display: block;
+  width: 1920px;
+  height: 1080px;
+  background: #050505;
+}
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: #080706;
+  color: #e8ddc6;
+  font-family: "Noto Serif SC", serif;
+  transition: opacity 0.42s ease, visibility 0.42s;
+}
+#loading.is-done { opacity: 0; visibility: hidden; }
+#loading .inner {
+  text-align: center;
+  letter-spacing: 0.5em;
+}
+#loading .seal {
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 28px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #a62a22;
+  color: #b8342a;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  transform: rotate(-2deg);
+}
+#loading .small {
+  margin-top: 18px;
+  color: rgba(232,221,198,0.42);
+  font: 10px/1.4 "Cascadia Mono", monospace;
+  letter-spacing: 0.28em;
+}
+#fatal {
+  position: fixed;
+  inset: auto 4vw 4vh 4vw;
+  z-index: 20;
+  padding: 18px 22px;
+  border: 1px solid rgba(200,60,50,0.6);
+  background: #15100e;
+  color: #e9d8c0;
+  font: 13px/1.6 "Cascadia Mono", monospace;
+  white-space: pre-wrap;
+}
