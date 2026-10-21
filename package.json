@@ -20,7 +20,8 @@
     "qa": "node tools/qa-gate.mjs",
     "qa:v6.1": "node tools/qa-v6-1.mjs",
     "delivery": "node tools/delivery-report.mjs",
-    "build": "npm run prebake && npm run audio && npm run qa && npm run qa:v6.1 && npm run render && npm run encode && npm run sheet"
+    "build": "npm run prebake && npm run audio && npm run qa && npm run qa:v6.1 && npm run render && npm run encode && npm run sheet",
+    "vertical": "node tools/vertical.mjs --h 1920 --crf 16 --name 1080x1920_douyin"
   },
   "devEngines": {
     "packageManager": {
