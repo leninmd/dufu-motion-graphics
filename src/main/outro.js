@@ -516,6 +516,14 @@ function drawWallTile(ctx, cam, index, spec, tile, u) {
     // particles per tile
     drawTileSparks(ctx, index, cell, u, gold);
   }
+  // As the 1,455 characters complete their migration, the 18 frames fall dark;
+  // only the 19th cell keeps the star river.
+  const finalDark = smoothstep(20.6, 22.4, u) * 0.82;
+  if (finalDark > 0) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = `rgba(2,4,5,${finalDark.toFixed(3)})`;
+    ctx.fillRect(sx, sy, sw, sh);
+  }
   ctx.restore();
 }
 

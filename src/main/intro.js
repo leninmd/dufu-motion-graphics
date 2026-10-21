@@ -307,20 +307,51 @@ export function drawGateAndTraveller(ctx, u) {
     ctx.save();
     ctx.globalAlpha = gateP;
     // the next era's dark stone shows in the gate
-    ctx.fillStyle = '#16130f';
+    const inside = ctx.createLinearGradient(gateX, 0, gateX + gateW, 0);
+    inside.addColorStop(0, '#201b14');
+    inside.addColorStop(0.3, '#15120e');
+    inside.addColorStop(1, '#0c0b09');
+    ctx.fillStyle = inside;
     ctx.fillRect(gateX, gateY, gateW, gateH);
-    // rubbing-like white line fragment of the next world
-    ctx.strokeStyle = 'rgba(225,213,190,0.42)';
-    ctx.lineWidth = 1.2;
+    // rubbing-like fragments of the next world: a horse, a wheel, a broken seal
+    ctx.strokeStyle = 'rgba(225,213,190,0.56)';
+    ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.moveTo(gateX + 19, gateY + 565); ctx.lineTo(gateX + 95, gateY + 520); ctx.lineTo(gateX + 162, gateY + 582); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(gateX + 24, gateY + 620); ctx.lineTo(gateX + 90, gateY + 650); ctx.lineTo(gateX + 156, gateY + 600); ctx.stroke();
-    KIT.frames.drawPortal(ctx, gateX, gateY, gateW, gateH, { style: 'stone', accent: '#b8342a', alpha: 1, seed: 711, t: u });
+    ctx.beginPath(); ctx.arc(gateX + 115, gateY + 690, 23, 0, KIT.TAU); ctx.stroke();
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * KIT.TAU;
+      ctx.beginPath();
+      ctx.moveTo(gateX + 115 + Math.cos(a) * 25, gateY + 690 + Math.sin(a) * 25);
+      ctx.lineTo(gateX + 115 + Math.cos(a) * 43, gateY + 690 + Math.sin(a) * 43);
+      ctx.stroke();
+    }
+    KIT.drawText(ctx, '石', gateX + 74, gateY + 705, { size: 18, font: FONT.display, weight: 700, color: 'rgba(226,215,191,0.22)', align: 'center' });
+    // a bright stone lintel and left jamb make this read as a doorway, not a black cut
+    ctx.fillStyle = '#29231a';
+    ctx.fillRect(gateX - 14, gateY - 10, gateW + 14, 16);
+    ctx.fillRect(gateX - 14, gateY + gateH - 6, gateW + 14, 16);
+    ctx.fillRect(gateX - 14, gateY - 10, 16, gateH + 20);
+    ctx.strokeStyle = 'rgba(210,177,111,0.72)';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(gateX - 13, gateY + gateH); ctx.lineTo(gateX - 13, gateY); ctx.lineTo(gateX + gateW + 2, gateY); ctx.stroke();
+    ctx.strokeStyle = 'rgba(165,42,34,0.7)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(gateX - 5, gateY + gateH); ctx.lineTo(gateX - 5, gateY + 5); ctx.stroke();
+    // warm spill from the next world
+    const spill = ctx.createLinearGradient(gateX - 30, 0, gateX + 100, 0);
+    spill.addColorStop(0, 'rgba(212,175,55,0)');
+    spill.addColorStop(0.5, 'rgba(212,175,55,0.10)');
+    spill.addColorStop(1, 'rgba(212,175,55,0)');
+    ctx.fillStyle = spill;
+    ctx.fillRect(gateX - 30, gateY, 140, gateH);
+    KIT.frames.drawPortal(ctx, gateX, gateY, gateW, gateH, { style: 'stone', accent: '#b8342a', alpha: 0.42, seed: 711, t: u });
     // etched jamb label, a small print-shop flourish
     ctx.save();
-    ctx.translate(gateX + 18, gateY + 88);
+    ctx.translate(gateX + 12, gateY + 88);
     ctx.rotate(Math.PI / 2);
     KIT.drawText(ctx, '第 一 道 畫 框', 0, 0, {
-      size: 9.5, font: FONT.mono, weight: 500, color: 'rgba(232,216,187,0.48)', letterSpacing: 3.2,
+      size: 9.5, font: FONT.mono, weight: 500, color: 'rgba(238,224,194,0.72)', letterSpacing: 3.2,
     });
     ctx.restore();
     ctx.restore();
