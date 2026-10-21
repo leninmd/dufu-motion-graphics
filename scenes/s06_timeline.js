@@ -23,7 +23,7 @@
   const BIRD_S = 0.8 * 0.72;        // 0.8 景深
   const FLAP = 6 / BIRD_S;          // 屏上 ±6px
   const T_FLY = 3.90, T_HIT = 7.10;
-  const T_A = 7.90, T_B = 8.90, T_NOTE = 9.55;
+  const T_A = 5.40, T_B = 6.20, T_NOTE = 7.20;
   const JADE = [11, 14, 12];        // #0B0E0C
   const INK = '#F4EFE6';
 
@@ -500,8 +500,18 @@
       c.restore();
     }
 
-    /* ================= 排版 ================= */
+    /* ================= 排版（句读律动） ================= */
     _colText(c, text, o) {
+      const V4 = DFS.V4;
+      if (V4 && V4.cue(o.id)) {
+        const m = V4.chantColumn(c, text, {
+          id: o.id, L: o.L, x: o.x, top: o.top, size: o.size, gap: o.gap || 1.10,
+          weight: o.weight || 900, family: o.family, color: o.color,
+          seed: o.seed || 21, alpha: o.alpha === undefined ? 1 : o.alpha, halo: 0.44
+        });
+        if (m) DFS.dbgBox(o.id, m.x - m.w * 0.5, m.top - m.w * 0.5, m.x + m.w * 0.5, m.top + m.h);
+        return;
+      }
       const chars = Array.from(text);
       const size = o.size;
       const step = size * (o.gap ?? 1.10);
@@ -527,6 +537,16 @@
     }
 
     _noteText(c, text, o) {
+      const V4 = DFS.V4;
+      if (V4 && V4.cue(o.id)) {
+        const m = V4.chantLine(c, text, {
+          id: o.id, L: o.L, x: CX, y: o.y, size: o.size, weight: o.weight || 500,
+          family: T.fonts.serif, color: o.color, tracking: 4,
+          seed: o.seed || 5, alpha: o.alpha === undefined ? 1 : o.alpha, halo: 0.5
+        });
+        if (m) DFS.dbgBox(o.id, m.x - 6, m.y, m.x + m.w + 6, m.y + m.h);
+        return;
+      }
       const e = HUB.multiEntrance(o.L, o.start, { duration: 0.9, rise: 14, scaleFrom: 0.99 });
       if (e.alpha <= 0.008) return;
       const chars = Array.from(text);

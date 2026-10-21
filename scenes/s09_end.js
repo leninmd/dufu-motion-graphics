@@ -15,11 +15,11 @@
       const st = DFS.STORY.texts;
       const tSnow = clamp(L / 1.2);
       const tGold = clamp((L - 2.6) / 2.2);        // 灯化金墨 → 江水成金
-      const pA = HUB.multiEntrance(L, 3.9, { duration: 1.1, rise: 26, blur: 9 });
-      const pB = HUB.multiEntrance(L, 4.35, { duration: 1.1, rise: 26, blur: 9 });
-      const tSeal = clamp((L - 5.1) / 0.5);
-      const pNote = HUB.multiEntrance(L, 6.0, { duration: 0.9, rise: 14, blur: 5 });
-      const tEnd = clamp((L - 9.2) / 0.7);
+      const pA = HUB.multiEntrance(L, 4.10, { duration: 1.1, rise: 26, blur: 0 });
+      const pB = HUB.multiEntrance(L, 5.50, { duration: 1.1, rise: 26, blur: 0 });
+      const tSeal = clamp((L - 7.00) / 0.5);
+      const pNote = HUB.multiEntrance(L, 8.00, { duration: 0.9, rise: 14, blur: 0 });
+      const tEnd = clamp((L - 9.90) / 0.80);
 
       V3.eight(ctx, t, {
         void: true,
@@ -89,9 +89,9 @@
         },
         l4: (c) => {
           // 孤舟（远去）
-          const bx = lerp(W * 0.62, W * 0.70, clamp(L / 9.9));
+          const bx = lerp(W * 0.62, W * 0.72, clamp(L / 10.4));
           const by = H * 0.615;
-          const scale = lerp(0.5, 0.34, clamp(L / 9.9));
+          const scale = lerp(0.5, 0.32, clamp(L / 10.4));
           c.save();
           c.globalAlpha = 0.92;
           DFS.boat(c, bx, by, scale, { t, alpha: 0.9, color: '12,14,16', figure: true, figureColor: '10,12,14' });
@@ -147,26 +147,28 @@
           c.restore();
         },
         l5: (c) => {
-          // 绝笔两句
-          if (pA.alpha > 0.01) {
-            c.save();
-            c.globalAlpha = pA.alpha;
+          const V4 = DFS.V4;
+          // 绝笔两句（杜诗吟诵）
+          if (V4) {
+            const mA = V4.chantLine(c, st.s09_a, {
+              id: 's09_a', L, x: W * 0.5, y: 300, size: 88, weight: 900,
+              family: T.fonts.heavy, color: 'rgba(240,236,222,0.97)', tracking: 10, seed: 3, halo: 0.55
+            });
+            if (mA) DFS.dbgBox('s09_a', mA.x, mA.y, mA.x + mA.w, mA.y + mA.h);
+            const mB = V4.chantLine(c, st.s09_b, {
+              id: 's09_b', L, x: W * 0.5, y: 396, size: 88, weight: 900,
+              family: T.fonts.heavy, color: 'rgba(240,236,222,0.97)', tracking: 10, seed: 5, halo: 0.55
+            });
+            if (mB) DFS.dbgBox('s09_b', mB.x, mB.y, mB.x + mB.w, mB.y + mB.h);
+          } else {
             V3.inkText(c, st.s09_a, {
-              x: W * 0.5, y: 300 - pA.dy * 0.5, size: 88, weight: 900,
+              x: W * 0.5, y: 300, size: 88, weight: 900,
               family: T.fonts.heavy, color: 'rgba(240,236,222,0.97)', tracking: 10
             });
-            DFS.dbgBox('s09_a', W * 0.5 - 380, 240, W * 0.5 + 380, 360);
-            c.restore();
-          }
-          if (pB.alpha > 0.01) {
-            c.save();
-            c.globalAlpha = pB.alpha;
             V3.inkText(c, st.s09_b, {
-              x: W * 0.5, y: 396 - pB.dy * 0.5, size: 88, weight: 900,
+              x: W * 0.5, y: 396, size: 88, weight: 900,
               family: T.fonts.heavy, color: 'rgba(240,236,222,0.97)', tracking: 10
             });
-            DFS.dbgBox('s09_b', W * 0.5 - 380, 336, W * 0.5 + 380, 456);
-            c.restore();
           }
           // 钤印「诗史」
           if (tSeal > 0.001) {
@@ -175,19 +177,28 @@
             });
             DFS.dbgBox('s09_seal', W * 0.5 - 90, 494, W * 0.5 + 90, 626);
           }
-          if (pNote.alpha > 0.01) {
+          if (V4) {
+            const mN = V4.chantLine(c, st.s09_note, {
+              id: 's09_note', L, x: W * 0.76, y: 930, size: 28, weight: 400,
+              family: T.fonts.serif, color: 'rgba(210,204,188,0.85)', tracking: 3, seed: 9, halo: 0.55
+            });
+            if (mN) DFS.dbgBox('s09_note', mN.x, mN.y, mN.x + mN.w, mN.y + mN.h);
+            if (pNote.alpha > 0.01) {
+              c.save();
+              c.globalAlpha = pNote.alpha * 0.45;
+              V3.inkText(c, st.s09_note_src, {
+                x: W * 0.79, y: 968, size: 18, weight: 400,
+                family: T.fonts.serif, color: 'rgba(192,186,170,0.8)', halo: 0.5
+              });
+              c.restore();
+            }
+          } else if (pNote.alpha > 0.01) {
             c.save();
             c.globalAlpha = pNote.alpha * 0.7;
             V3.inkText(c, st.s09_note, {
-              x: W * 0.76, y: 930 - pNote.dy * 0.3, size: 28, weight: 400,
+              x: W * 0.76, y: 930, size: 28, weight: 400,
               family: T.fonts.serif, color: 'rgba(210,204,188,0.85)'
             });
-            c.globalAlpha = pNote.alpha * 0.45;
-            V3.inkText(c, st.s09_note_src, {
-              x: W * 0.79, y: 968 - pNote.dy * 0.2, size: 18, weight: 400,
-              family: T.fonts.serif, color: 'rgba(192,186,170,0.8)'
-            });
-            DFS.dbgBox('s09_note', W * 0.62, 900, W * 0.95, 985);
             c.restore();
           }
         }

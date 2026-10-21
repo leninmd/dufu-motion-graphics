@@ -34,7 +34,7 @@
   /* ---------- 落款 / 纪年 ---------- */
   const NOTE_SIZE = 26, YEAR_SIZE = 20;
   const NOTE_R = 1745, NOTE_Y = 754, YEAR_Y = 794;
-  const T_NOTE = 10.80, T_YEAR = 10.95;
+  const T_NOTE = 8.90, T_YEAR = 9.10;
 
   /* ---------- 孤石 ---------- */
   const ROCK_X = 700, ROCK_Y = 770, ROCK_W = 280, ROCK_H = 90;
@@ -128,8 +128,21 @@
           if (p) c.lineTo(p.x, p.y);
         }
         c.closePath();
-        c.globalAlpha = clamp(o.alpha * (0.82 + 0.09 * (2 - layer)));
-        c.fillStyle = o.color;
+        const aTop = clamp(o.alpha * (0.92 + 0.06 * (2 - layer)));
+        let yMin = Infinity, yMax = -Infinity;
+        for (let i = 0; i <= N; i++) {
+          if (top[i]) { if (top[i].y < yMin) yMin = top[i].y; if (top[i].y > yMax) yMax = top[i].y; }
+          if (bot[i]) { if (bot[i].y > yMax) yMax = bot[i].y; }
+        }
+        if (!isFinite(yMin)) { yMin = 0; yMax = H; }
+        const gy0 = yMin, gy1 = Math.max(yMin + 40, Math.min(H * 1.05, yMax));
+        const grad = c.createLinearGradient(0, gy0, 0, gy1);
+        grad.addColorStop(0, 'rgba(' + o.color + ',' + aTop.toFixed(3) + ')');
+        grad.addColorStop(0.30, 'rgba(' + o.color + ',' + (aTop * 0.97).toFixed(3) + ')');
+        grad.addColorStop(0.58, 'rgba(' + o.color + ',' + (aTop * 0.88).toFixed(3) + ')');
+        grad.addColorStop(0.80, 'rgba(' + o.color + ',' + (aTop * 0.42).toFixed(3) + ')');
+        grad.addColorStop(1, 'rgba(' + o.color + ',0)');
+        c.fillStyle = grad;
         c.fill();
       }
     }
@@ -142,23 +155,35 @@
       return 905 - 720 * Ease.inCubic(pD) + 580 * Ease.outExpo(pU);
     }
 
-    /* 远望的群峰：缩成墨点（几笔小山尖，藏在云海里） */
+    /* 远望的群峰：缩成淡墨山影（绝不再用硬边三角形 —— 那是"廉价屏保"） */
     _peakDots(c, alpha) {
+      const V4 = DFS.V4;
       const r = DFS.rng(3357);
       c.save();
-      for (let i = 0; i < 34; i++) {
+      for (let i = 0; i < 30; i++) {
         const x = 40 + r() * (W - 80);
-        const y = 858 + r() * 46;
-        const h = 7 + r() * 30;
-        const w = h * (1.1 + r() * 1.5);
-        const a = alpha * (0.16 + r() * 0.52);
-        c.fillStyle = 'rgba(24,24,22,' + a.toFixed(4) + ')';
+        const y = 862 + r() * 44;
+        const h = 6 + r() * 22;
+        const w = h * (4.2 + r() * 5.0);
+        const a = alpha * (0.07 + r() * 0.20);
+        // 山体：上浓下无 —— 山无脚
+        const g = c.createLinearGradient(0, y - h, 0, y + 8);
+        g.addColorStop(0, 'rgba(28,28,24,' + (a * 1.25).toFixed(4) + ')');
+        g.addColorStop(0.55, 'rgba(28,28,24,' + (a * 0.55).toFixed(4) + ')');
+        g.addColorStop(1, 'rgba(28,28,24,0)');
+        c.fillStyle = g;
         c.beginPath();
-        c.moveTo(x - w * 0.5, y + h * 0.42);
-        c.lineTo(x - w * 0.08, y - h * 0.5);
-        c.lineTo(x + w * 0.40, y + h * 0.38);
+        c.moveTo(x - w * 0.5, y + 6);
+        c.quadraticCurveTo(x - w * 0.26, y - h * 0.72, x + w * 0.02, y - h * 0.92);
+        c.quadraticCurveTo(x + w * 0.30, y - h * 0.50, x + w * 0.5, y + 6);
         c.closePath();
         c.fill();
+        // 脊线：一笔淡墨
+        if (V4 && h > 14) {
+          V4.inkStroke(c, x - w * 0.46, y + 2, x + w * 0.04, y - h * 0.98, {
+            w: 1.6 + h * 0.03, alpha: a * 1.4, color: '22,22,19', dry: 0.6, seed: 300 + i
+          });
+        }
       }
       c.restore();
     }
@@ -221,8 +246,8 @@
       // 升腾：外层旋进 + 放大，收束到静止（对数螺旋感）
       const swirl = 1 - Ease.outCubic(clamp(L / 2.6));
 
-      const poemA = HUB.multiEntrance(L, 8.00, { duration: 0.85, rise: 22 });
-      const poemB = HUB.multiEntrance(L, 9.80, { duration: 0.85, rise: 22 });
+      const poemA = { alpha: 1, dy: 0 };
+      const poemB = { alpha: 1, dy: 0 };
       const noteE = HUB.multiEntrance(L, T_NOTE, { duration: 0.70, rise: 10 });
       const yearE = HUB.multiEntrance(L, T_YEAR, { duration: 0.70, rise: 8 });
 
@@ -274,25 +299,39 @@
             // 远山（青绿）→ 近山（墨黑）：实心山体 + 点云颗粒
             this._mass(c, this.cam, {
               depth: 14, height: RIDGE_H * 1.42, width: RIDGE_W * 2.0,
-              color: '54,82,66', alpha: 0.50 * nearA, focus: focus * 0.7
+              color: '96,124,108', alpha: 0.26 * nearA, focus: focus * 0.7
             });
             this.far.draw(c, this.cam, t, {
-              alpha: 0.20 * nearA, color: '54,82,66', size: 1.15, focus: focus, jitter: 1
+              alpha: 0.62 * nearA, color: '26,38,32', focus: focus,
+              ridgeFn: (x, l) => this._rh(x, l)
             });
             this._mass(c, this.cam, {
               depth: 9, height: RIDGE_H, width: RIDGE_W * 2.0,
-              color: '20,20,18', alpha: 0.92 * nearA, focus: focus
+              color: '11,11,10', alpha: 1.00 * nearA, focus: focus
             });
             this.near.draw(c, this.cam, t, {
-              alpha: 0.20 * nearA, color: '20,20,18', size: 1.0, focus: focus, jitter: 1
+              alpha: 0.80 * nearA, color: '12,12,10', focus: focus,
+              ridgeFn: (x, l) => this._rh(x, l)
             });
 
+            // —— V4 天头留白：群山自纸中升起（4.0s 内退净）——
+            const skyK = 1 - clamp((L - 2.40) / 1.90);
+            if (skyK > 0.01) {
+              const sg = c.createLinearGradient(0, 0, 0, H * 0.70);
+              sg.addColorStop(0.00, 'rgba(241,237,225,' + (1.00 * skyK).toFixed(3) + ')');
+              sg.addColorStop(0.55, 'rgba(241,237,225,' + (0.99 * skyK).toFixed(3) + ')');
+              sg.addColorStop(0.72, 'rgba(240,236,224,' + (0.62 * skyK).toFixed(3) + ')');
+              sg.addColorStop(1.00, 'rgba(239,235,223,0)');
+              c.fillStyle = sg;
+              c.fillRect(0, 0, W, H * 0.70);
+            }
+
             // 山脚冷雾：只压山脚，别把山头洗灰
-            const g = c.createLinearGradient(0, H * 0.34, 0, H);
-            g.addColorStop(0, 'rgba(216,222,216,0)');
-            g.addColorStop(0.46, 'rgba(216,222,216,' + (0.10 * nearA).toFixed(3) + ')');
-            g.addColorStop(0.76, 'rgba(220,226,220,' + (0.30 * nearA).toFixed(3) + ')');
-            g.addColorStop(1, 'rgba(228,232,226,' + (0.52 * nearA).toFixed(3) + ')');
+            const g = c.createLinearGradient(0, H * 0.30, 0, H);
+            g.addColorStop(0, 'rgba(240,240,232,0)');
+            g.addColorStop(0.42, 'rgba(240,240,232,' + (0.12 * nearA).toFixed(3) + ')');
+            g.addColorStop(0.70, 'rgba(243,243,235,' + (0.62 * nearA).toFixed(3) + ')');
+            g.addColorStop(1, 'rgba(246,246,238,' + (0.95 * nearA).toFixed(3) + ')');
             c.fillStyle = g;
             c.fillRect(0, 0, W, H);
             c.restore();
@@ -301,9 +340,9 @@
           // 俯冲进云：白光把整帧吃掉，避免"黑屏"，也让山体的明暗转场不跳
           if (mistA > 0.012) {
             const mg = c.createLinearGradient(0, 0, 0, H);
-            mg.addColorStop(0, 'rgba(230,234,228,' + (mistA * 0.92).toFixed(3) + ')');
-            mg.addColorStop(0.5, 'rgba(234,238,232,' + mistA.toFixed(3) + ')');
-            mg.addColorStop(1, 'rgba(224,228,222,' + mistA.toFixed(3) + ')');
+            mg.addColorStop(0, 'rgba(244,246,241,' + clamp(mistA * 1.32).toFixed(3) + ')');
+            mg.addColorStop(0.5, 'rgba(249,251,246,' + clamp(mistA * 1.48).toFixed(3) + ')');
+            mg.addColorStop(1, 'rgba(240,244,238,' + clamp(mistA * 1.32).toFixed(3) + ')');
             c.fillStyle = mg;
             c.fillRect(0, 0, W, H);
             V3.cloudBank(c, t, {
@@ -354,7 +393,8 @@
           if (ridgeA > 0.012) {
             const b0 = this._ridgeBase(L);
             const b1 = this._ridgeBase(L - 0.11);
-            this._ridgeTrail(c, b0, b0 - b1, ridgeA * 0.85);
+            // 白云期不再画黑色脊线（否则像漂在雾里的黑虫）
+            this._ridgeTrail(c, b0, b0 - b1, ridgeA * 0.85 * (1 - clamp(mistA * 2.2)));
           }
 
           if (rockP.alpha > 0.012) {
@@ -441,29 +481,33 @@
           }
         },
 
-        /* ---- L5 竖排诗 + 落款 ---- */
+        /* ---- L5 竖排诗（杜诗吟诵：二·二·一 句读）+ 落款 ---- */
         l5: (c) => {
-          if (poemA.alpha > 0.008) {
-            c.save();
-            c.globalAlpha = poemA.alpha;
-            c.translate(0, poemA.dy);
-            V3.inkText(c, this.a, {
-              x: POEM_A_X, y: POEM_CY, size: POEM_SIZE, weight: 800,
-              vertical: true, gap: POEM_GAP, color: '#1A1309', seed: 61
-            });
-            c.restore();
+          const V4 = DFS.V4;
+          const poemTop = POEM_CY - POEM_H / 2 + POEM_SIZE * 0.85;
+          const a = V4
+            ? V4.chantColumn(c, this.a, {
+                id: 's02_a', L, x: POEM_A_X, top: poemTop, size: POEM_SIZE,
+                gap: POEM_GAP, weight: 800, color: '#1A1309', seed: 61, halo: 0.42
+              })
+            : (V3.inkText(c, this.a, {
+                x: POEM_A_X, y: POEM_CY, size: POEM_SIZE, weight: 800,
+                vertical: true, gap: POEM_GAP, color: '#1A1309', seed: 61
+              }) ? true : null);
+          if (a) {
             DFS.dbgBox('s02_poem_a', POEM_A_X - 46, POEM_CY - POEM_H / 2 + 20,
               POEM_A_X + 46, POEM_CY + POEM_H / 2 - 30);
           }
-          if (poemB.alpha > 0.008) {
-            c.save();
-            c.globalAlpha = poemB.alpha;
-            c.translate(0, poemB.dy);
-            V3.inkText(c, this.b, {
-              x: POEM_B_X, y: POEM_CY, size: POEM_SIZE, weight: 800,
-              vertical: true, gap: POEM_GAP, color: '#1A1309', seed: 83
-            });
-            c.restore();
+          const b = V4
+            ? V4.chantColumn(c, this.b, {
+                id: 's02_b', L, x: POEM_B_X, top: poemTop, size: POEM_SIZE,
+                gap: POEM_GAP, weight: 800, color: '#1A1309', seed: 83, halo: 0.42
+              })
+            : (V3.inkText(c, this.b, {
+                x: POEM_B_X, y: POEM_CY, size: POEM_SIZE, weight: 800,
+                vertical: true, gap: POEM_GAP, color: '#1A1309', seed: 83
+              }) ? true : null);
+          if (b) {
             DFS.dbgBox('s02_poem_b', POEM_B_X - 46, POEM_CY - POEM_H / 2 + 20,
               POEM_B_X + 46, POEM_CY + POEM_H / 2 - 30);
           }
@@ -471,8 +515,8 @@
           // 两列下方：落款 + 纪年（右对齐）
           if (noteE.alpha > 0.008) {
             c.save();
-            c.globalAlpha = 0.80 * noteE.alpha;
-            c.fillStyle = 'rgb(90,80,62)';
+            c.globalAlpha = 0.94 * noteE.alpha;
+            c.fillStyle = 'rgb(64,56,42)';
             c.textAlign = 'right';
             c.textBaseline = 'middle';
             c.font = DFS.font(NOTE_SIZE, 400, T.fonts.kai);
@@ -481,8 +525,8 @@
           }
           if (yearE.alpha > 0.008) {
             c.save();
-            c.globalAlpha = 0.62 * yearE.alpha;
-            c.fillStyle = 'rgb(90,80,62)';
+            c.globalAlpha = 0.80 * yearE.alpha;
+            c.fillStyle = 'rgb(64,56,42)';
             c.textAlign = 'right';
             c.textBaseline = 'middle';
             c.font = DFS.font(YEAR_SIZE, 400, T.fonts.serif);
@@ -490,7 +534,7 @@
             c.restore();
           }
           if (noteE.alpha > 0.008) {
-            DFS.dbgBox('s02_note', NOTE_R - 360, NOTE_Y - 20, NOTE_R + 6, YEAR_Y + 18);
+            DFS.dbgBox('s02_note', NOTE_R - 210, NOTE_Y - 18, NOTE_R + 6, YEAR_Y + 18);
           }
         }
       });

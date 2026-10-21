@@ -17,7 +17,7 @@
 
   /* ---------- 重印 ---------- */
   const STAMP_X = 960, STAMP_Y = 470, STAMP_SIZE = 420;
-  const STAMP_T0 = 2.00, STAMP_DUR = 0.45, IMPACT_AT = 0.35;
+  const STAMP_T0 = 0.95, STAMP_DUR = 0.45, IMPACT_AT = 0.35;
   const IMPACT_T = STAMP_T0 + STAMP_DUR * IMPACT_AT;      // ≈ 2.1575
   const IMPACT_F = Math.round(IMPACT_T * DFS.FPS);
 
@@ -27,10 +27,12 @@
      ------------------------------------------------ */
   const MAIN_SIZE = 74, MAIN_GAP = 1.18, MAIN_LEAD = MAIN_SIZE * MAIN_GAP;
   const COL_R = 1170, COL_L = 1066, MAIN_TOP = 180, MAIN_SPLIT = 10;
-  const T_SEEP = 3.95, SEEP_STEP = 0.05, SEEP_FADE = 0.34;
+  const T_SEEP = 3.10, SEEP_FADE = 0.34;
 
   /* ---------- 出处小字 ---------- */
-  const T_SRC = 6.50, SRC_SIZE = 24, SRC_X = 152, SRC_Y = 946;
+  const T_SRC = 5.20, SRC_SIZE = 24, SRC_X = 152, SRC_Y = 946;
+  /* V4：句读律动由 storyboard.v4.json 的 cues 驱动（史笔刀刻模式） */
+  let SEED_TL = null;
 
   DFS.sceneRegistry['s01'] = class Scene01V3 {
     constructor() {
@@ -93,9 +95,11 @@
 
     /* 落印后的墨痕残留：墨被纸吸走，只留极淡的印痕 */
     _sealAlpha(L) {
-      if (L < 3.45) return 1;
-      if (L < 4.60) return lerp(1, 0.10, Ease.inOutCubic(clamp((L - 3.45) / 1.15)));
-      return lerp(0.10, 0.035, Ease.inOutCubic(clamp((L - 4.60) / 0.90)));
+      // V4：墨被纸吸走之后就不再是"灰方块"了 —— 3.55s 前彻底退净，
+      // 把干净的麻纸留给《旧唐书》的史笔。
+      if (L < 2.55) return 1;
+      if (L < 3.55) return lerp(1, 0, Ease.inCubic(clamp((L - 2.55) / 1.00)));
+      return 0;
     }
 
     /* 印缘的墨晕与毛细渗出细丝（让"砸进纸里"有物性，而不是浮在纸上） */
@@ -168,7 +172,7 @@
         ? HUB.cameraShake(frame, { amp: 12, decay: 8, startFrame: IMPACT_F, seed: 19 })
         : { x: 0, y: 0, rot: 0 };
       const br = HUB.idleMicroMotion(L, 3, 0.42);          // 1–2px 呼吸
-      const panP = Ease.inOutCubic(clamp((L - 9.0) / 1.4)); // 9.0–10.4 右移 30px
+      const panP = Ease.inOutCubic(clamp((L - 6.20) / 1.80)); // 6.2–8.0 右移 32px（交棒 S02）
       const panX = 30 * panP + br.dx * 0.55;
       const panY = br.dy * 0.5;
       const darkTail = 0.12 * panP;
@@ -324,8 +328,11 @@
           }
         },
 
-        /* ---- L5 排版：竖排史传主文 + 出处 ---- */
+        /* ---- L5 排版：竖排史传主文（史笔刀刻模式）+ 出处 ---- */
         l5: (c) => {
+          const V4 = DFS.V4;
+          if (!SEED_TL && V4) SEED_TL = V4.times('s01_main', { t: T_SEEP, dur: 0.2, stagger: 0.05, n: 19 });
+          const tl = SEED_TL || { times: [] };
           const colX = [COL_R, COL_L];
           const colBase = [0, MAIN_SPLIT];
           for (let ci = 0; ci < 2; ci++) {
@@ -333,32 +340,23 @@
             const x = colX[ci];
             for (let i = 0; i < chars.length; i++) {
               const gi = colBase[ci] + i;
-              const st = T_SEEP + gi * SEEP_STEP;
+              const st = tl.times[gi] === undefined ? (T_SEEP + gi * 0.05) : tl.times[gi];
               if (L < st) continue;
-              const e = Ease.outCubic(clamp((L - st) / SEEP_FADE));
+              // 史笔刀刻：4~6 帧极速落位，无模糊，落到即定
+              const e = V4 ? V4.charIn('hist', L, st) : { a: Ease.outCubic(clamp((L - st) / SEEP_FADE)), dy: 0, sc: 1, cut: 0 };
               const y = MAIN_TOP + MAIN_SIZE * 0.55 + i * MAIN_LEAD;
               // 竖排标点：抬到字格右上，才像竖写的句读
               const ch = chars[i];
               const punc = '，。、；：'.indexOf(ch) >= 0;
               const px = punc ? x + MAIN_SIZE * 0.13 : x;
               const py = punc ? y - MAIN_SIZE * 0.30 : y;
-
-              // 渗出瞬间的外扩墨晕（毛细湿边）
-              if (e < 0.999) {
-                c.save();
-                c.globalAlpha = (1 - e) * 0.30;
-                c.translate(px, py);
-                c.scale(1.12, 1.12);
-                V3.inkText(c, ch, {
-                  x: 0, y: 0, size: MAIN_SIZE, weight: 800, color: '#3A2B16', seed: 400 + gi
-                });
-                c.restore();
-              }
+              const cutJit = (e.cut || 0) * (DFS.hash(77, gi) - 0.5) * 2.4;
               c.save();
-              c.globalAlpha = e;
-              c.translate(px, py);
+              c.globalAlpha = clamp(e.a);
+              c.translate(px + cutJit, py + e.dy);
+              if (e.sc !== 1) c.scale(e.sc, e.sc);
               V3.inkText(c, ch, {
-                x: 0, y: 0, size: MAIN_SIZE, weight: 800, color: '#1A1309', seed: 120 + gi
+                x: 0, y: 0, size: MAIN_SIZE, weight: 800, color: '#1A1309', seed: 120 + gi, halo: 0.34
               });
               c.restore();
             }

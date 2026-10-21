@@ -36,7 +36,7 @@
   const CY = H * 0.5;
 
   /* ---------------- 时间节点（场景内秒；38.1s 处 L=0） ---------------- */
-  const T0 = 38.1;          // 章节全局起点
+  const T0 = 25.4;          // V4 章节全局起点
   const T_TEAR0 = 0.70;     // 38.8  屋顶开始被掀
   const T_TEAR1 = 2.45;
   const T_FLASH = 3.40;     // 41.5  白光 / 震屏 / 子弹时间
@@ -45,8 +45,8 @@
   const T_LATTICE = 6.90;   // 45.0  晶格生长
   const T_GROUND = 7.40;    // 45.5  泥水 + 老翁
   const T_SAGE = 7.55;
-  const T_TEXT = 10.45;     // 48.5  终极静帧
-  const T_HOLD = 10.40;
+  const T_TEXT = 8.05;      // V4 终极静帧（文字与广厦一同生长）
+  const T_HOLD = 8.00;
   const G_FLOOR = 0.02;     // 子弹时间残余雨速
 
   const GOLD = '213,168,84';
@@ -983,34 +983,37 @@
     }
 
     _type(ctx, L) {
+      const V4 = DFS.V4;
       const lines = [
-        { id: 's04_a', x: CX, y: 300, size: 96, track: 10, color: CREAM, at: T_TEXT, a: 1 },
-        { id: 's04_b', x: CX, y: 420, size: 78, track: 5, color: CREAM, at: T_TEXT + 0.26, a: 1 },
-        { id: 's04_c', x: CX, y: 526, size: 62, track: 4, color: CREAM, at: T_TEXT + 0.52, a: 1 },
-        { id: 's04_oath', x: CX, y: 960, size: 30, track: 2, color: CINNABAR, at: T_TEXT + 0.95, a: 0.95 }
+        { id: 's04_a', x: CX, y: 288, size: 96, track: 10, color: CREAM, a: 1 },
+        { id: 's04_b', x: CX, y: 430, size: 74, track: 5, color: CREAM, a: 1 },
+        { id: 's04_c', x: CX, y: 552, size: 60, track: 4, color: CREAM, a: 1 },
+        { id: 's04_oath', x: CX, y: 972, size: 34, track: 3, color: CINNABAR, a: 0.98 }
       ];
-      if (L < lines[0].at) return;
+      if (L < T_TEXT) return;
 
-      // 衬底：极淡的墨色，只为把字从金线里"托"出来
-      const first = Ease.outCubic(clamp((L - lines[0].at) / 0.5));
-      this._plate(ctx, CX, 412, 980, 380, 0.34 * first, '5,6,5');
-      this._plate(ctx, CX, 412, 700, 268, 0.72 * first, '5,6,5');
+      // 衬底：极淡的墨色，只为把字从广厦剪影里"托"出来
+      const first = Ease.outCubic(clamp((L - T_TEXT) / 0.5));
+      this._plate(ctx, CX, 420, 1010, 420, 0.26 * first, '5,6,5');
+      this._plate(ctx, CX, 420, 760, 300, 0.52 * first, '5,6,5');
+      this._plate(ctx, CX, 970, 600, 70, 0.62 * clamp((L - 9.4) / 0.6), '5,6,5');
 
       for (const ln of lines) {
-        const en = HUB.multiEntrance(L, ln.at, { duration: 0.85, rise: 22, scaleFrom: 0.985, blur: 0 });
-        if (en.p <= 0.002) continue;
-        if (ln.id === 's04_oath') this._plate(ctx, CX, 958, 560, 64, 0.52 * en.alpha, '5,6,5');
-        ctx.save();
-        ctx.globalAlpha = clamp(en.alpha, 0, 1) * ln.a;
-        ctx.translate(0, en.dy * 0.7);
-        V3.inkText(ctx, TEXTS[ln.id], {
-          x: ln.x, y: ln.y, size: ln.size, weight: 900,
-          family: T.fonts.heavy, color: ln.color, tracking: ln.track, alpha: 1, seed: 3
+        if (!V4) {
+          V3.inkText(ctx, TEXTS[ln.id], {
+            x: ln.x, y: ln.y, size: ln.size, weight: 900,
+            family: T.fonts.heavy, color: ln.color, tracking: ln.track, alpha: 1, seed: 3
+          });
+          continue;
+        }
+        const m = V4.chantLine(ctx, TEXTS[ln.id], {
+          id: ln.id, L, x: ln.x, y: ln.y, size: ln.size,
+          weight: ln.id === 's04_oath' ? 700 : 900,
+          family: ln.id === 's04_oath' ? T.fonts.serif : T.fonts.heavy,
+          color: ln.color, tracking: ln.track, seed: 3,
+          halo: ln.id === 's04_oath' ? 0.72 : 0.50
         });
-        ctx.restore();
-
-        const halfW = Array.from(TEXTS[ln.id]).length * ln.size * 0.5 + ln.size * 0.6 + 18;
-        DFS.dbgBox(ln.id, ln.x - halfW, ln.y - ln.size * 0.78, ln.x + halfW, ln.y + ln.size * 0.78);
+        if (m) DFS.dbgBox(ln.id, m.x, m.y, m.x + m.w, m.y + m.h);
       }
     }
 

@@ -190,17 +190,22 @@
     }
   };
 
-  /* ---------------- 点云群山（望岳） ----------------
+  /* ---------------- 皴法层峦（望岳） ----------------
+     V4：3D 投影坐标计算全部保留，但废除"画散点（fillRect）"——
+     山体内部改为干笔皴擦：从脊线向下，密度与墨色随坡度衰减，
+     山脚自然消融在留白云气里（山无脚）。
+
      三层山脊体量 + 相机方位角旋转 → 视平面从多峰收束为孤峰。
      focus: 0 = 群峰并列，1 = 收束成孤峰
      ---------------------------------------------------- */
   DFS.RidgeCloud = class RidgeCloud {
-    constructor(o = {}) {
-      this.seed = o.seed ?? 7028;
-      this.count = o.count ?? 12000;
-      this.width = o.width ?? 34;
-      this.depth = o.depth ?? 9;
-      this.height = o.height ?? 7.0;
+    constructor(o) {
+      o = o || {};
+      this.seed = o.seed === undefined ? 7028 : o.seed;
+      this.count = o.count || 12000;        // 兼容旧参数：现用于决定皴笔密度
+      this.width = o.width || 34;
+      this.depth = o.depth || 9;
+      this.height = o.height || 7.0;
       this.build();
     }
     // 单条山脉的高度场（0..1）
@@ -211,57 +216,70 @@
         { peaks: [[-1.5, 3.4, 1.0], [1.5, 2.2, 0.72]], base: 0.05 }
       ][layer];
       let h = cfg.base;
-      for (const [c, w, a] of cfg.peaks) {
-        h += a * Math.exp(-Math.pow((x - c) / w, 2));
+      for (let i = 0; i < cfg.peaks.length; i++) {
+        const c = cfg.peaks[i];
+        h += c[2] * Math.exp(-Math.pow((x - c[0]) / c[1], 2));
       }
       h += (DFS.fbm(x * 0.28 + layer * 7.3, layer * 3.1, 4) - 0.5) * 0.34;
       return Math.max(0.02, h);
     }
     build() {
-      const r = DFS.rng(this.seed);
+      // 保留 pts 数组（外部有 .pts.length 的引用），但改为"脊线采样列"
       const pts = [];
-      const total = this.count;
-      const layers = 3;
-      for (let layer = 0; layer < layers; layer++) {
-        const n = Math.floor(total * (layer === 2 ? 0.46 : 0.27));
-        const zc = (layer - 1) * this.depth * 0.52;
-        const hMax = this.height * (0.62 + 0.19 * layer);
-        for (let i = 0; i < n; i++) {
-          const x = (r() - 0.5) * this.width;
-          const z = zc + (r() - 0.5) * this.depth * 0.55;
-          const ridge = this._ridge(x, layer);
-          const y = Math.pow(r(), 0.62) * ridge * hMax * (1 - Math.abs(z - zc) / (this.depth * 0.9) * 0.45);
-          pts.push({ x, y: Math.max(0, y), z, a: 0.25 + r() * 0.75, layer });
+      const N = 96;
+      for (let layer = 0; layer < 3; layer++) {
+        for (let i = 0; i <= N; i++) {
+          const x = (i / N - 0.5) * this.width;
+          pts.push({ x, layer, h: this._ridge(x, layer) });
         }
       }
       this.pts = pts;
+      this.columns = N;
     }
-    draw(ctx, cam, t, opts = {}) {
-      const { alpha = 1, color = '26,19,9', size = 1.55, focus = 0, jitter = 0 } = opts;
+    /**
+     * 皴笔层：只画"肌理"，不画轮廓（轮廓由各分镜的实心山体负责）
+     * opts: alpha / color / focus / ridgeFn / seed / dry / strokeScale
+     */
+    draw(ctx, cam, t, opts) {
+      opts = opts || {};
+      const V4 = DFS.V4;
+      if (!V4 || !V4.cunStrokes) return;
+      const alpha = opts.alpha === undefined ? 1 : opts.alpha;
+      const color = opts.color || '26,19,9';
+      const focus = opts.focus || 0;
       const squeeze = 1 - focus * 0.62;
+      const ridgeFn = opts.ridgeFn || ((x, layer) => this._ridge(x, layer));
+      const density = clamp(Math.round((this.count / 12000) * 96), 56, 132);
+
       ctx.save();
-      ctx.fillStyle = `rgba(${color},1)`;
-      for (let i = 0; i < this.pts.length; i++) {
-        const p = this.pts[i];
-        // 收束：横向挤压 + 中央抬升
-        let x = p.x * squeeze;
-        let y = p.y * (1 + focus * (0.55 - Math.min(0.5, Math.abs(p.x) / 16)));
-        if (jitter) {
-          x += Math.sin(t * 0.7 + i * 0.37) * jitter * 0.015;
-          y += Math.cos(t * 0.9 + i * 0.29) * jitter * 0.012;
+      for (let layer = 2; layer >= 0; layer--) {
+        const zc = (layer - 1) * this.depth * 0.52 + focus * 2.2;
+        const hMax = this.height * (0.62 + 0.19 * layer);
+        const tops = [];
+        for (let i = 0; i <= density; i++) {
+          const xr = (i / density - 0.5) * this.width;
+          const h = ridgeFn(xr, layer);
+          const y = h * hMax * (1 + focus * (0.55 - Math.min(0.5, Math.abs(xr) / 16)));
+          const x = xr * squeeze;
+          const pt = cam.project({ x, y, z: zc });
+          const pb = cam.project({ x, y: 0, z: zc });
+          if (!pt || !pb) { tops.push(null); continue; }
+          const hpx = pb.y - pt.y;
+          tops.push({ x: pt.x, y: pt.y, h: Math.max(0, hpx) });
         }
-        const pr = cam.project({ x, y, z: p.z + focus * 2.2 });
-        if (!pr) continue;
-        const fade = clamp(1 - pr.z / 46);
-        const a = alpha * p.a * (0.35 + 0.65 * fade) * (0.75 + 0.25 * (1 - p.layer / 3));
-        if (a <= 0.02) continue;
-        ctx.globalAlpha = a;
-        const sz = Math.max(1, size * clamp(pr.s * 0.20, 0.45, 2.4));
-        ctx.fillRect(pr.x, pr.y, sz, sz);
+        // 远山淡、近山浓（大气透视）
+        const layerK = [0.50, 0.74, 1.0][layer];
+        V4.cunStrokes(ctx, tops, {
+          color,
+          alpha: clamp(alpha * layerK * 0.95),
+          seed: this.seed + layer * 131,
+          dry: 0.55 + layer * 0.10
+        });
       }
       ctx.restore();
     }
   };
+
 
   /* ---------------- 通用：3D 场景的雾 ---------------- */
   DFS.depthFog = function (ctx, cam, opts = {}) {

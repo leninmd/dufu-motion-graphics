@@ -113,12 +113,47 @@
     let cv = inkCache.get(key);
     if (!cv) cv = bakeInk(text, { size, weight, family, vertical, gap, tracking, color, seed: o.seed ?? 1 });
     if (!cv) return;
+    const x = (o.x ?? W / 2) - cv.width / 2;
+    const y = (o.y ?? H / 2) - cv.height / 2;
+    // ——— V4 可读性护罩：亮字垫暗、暗字垫亮，只作用于局部椭圆 ———
+    const halo = o.halo;
+    if (halo !== false && halo !== 0 && DFS.V4 && DFS.V4.halo) {
+      const alpha = clamp((o.alpha ?? 1)) * (typeof halo === 'number' ? halo : (o.haloAlpha ?? 0.36));
+      if (alpha > 0.01) {
+        DFS.V4.halo(ctx, x + cv.width / 2, y + cv.height / 2, cv.width * 0.92, cv.height * 0.84, {
+          alpha, dark: isLightText(color), pad: size * 0.26, padY: size * 0.17
+        });
+      }
+    }
     ctx.save();
     ctx.globalAlpha *= (o.alpha ?? 1);
-    ctx.drawImage(cv, (o.x ?? W / 2) - cv.width / 2, (o.y ?? H / 2) - cv.height / 2);
+    ctx.drawImage(cv, x, y);
     ctx.restore();
     return { w: cv.width, h: cv.height };
   };
+
+  /* 判断字色是"亮字"还是"暗字"，据此决定护罩垫暗还是垫亮。
+
+     规则：
+       · 高饱和（朱砂 / 金）一律当"亮字" —— 它们是暗场里的重音，
+         垫亮色会变成一块发光的字幕板（V4 踩过这个坑）。
+       · 其余按相对亮度判断。
+     ------------------------------------------------------------ */
+  function isLightText(color) {
+    let r = 0, g = 0, b = 0;
+    const hex = /^#([0-9a-f]{6})$/i.exec(color || '');
+    if (hex) {
+      const v = parseInt(hex[1], 16);
+      r = (v >> 16) & 255; g = (v >> 8) & 255; b = v & 255;
+    } else {
+      const m = /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i.exec(color || '');
+      if (m) { r = +m[1]; g = +m[2]; b = +m[3]; }
+      else { r = g = b = 30; }
+    }
+    const maxc = Math.max(r, g, b), minc = Math.min(r, g, b);
+    if (maxc - minc > 60) return true;             // 饱和色 = 暗场重音
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 120;
+  }
 
   function bakeInk(text, o) {
     const { size, weight, family, vertical, gap, tracking, color, seed } = o;

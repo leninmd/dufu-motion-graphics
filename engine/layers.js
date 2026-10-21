@@ -162,15 +162,19 @@
     ctx.restore();
   };
 
-  /* ============ 通用绘制：胶片颗粒 + 暗角（第五层，全片统一） ============ */
+  /* ============ 通用绘制：胶片颗粒 + 暗角（第五层，全片统一） ============
+     V4：颗粒从 0.5 收到 0.18 量级。两张 tile 叠化在暗部会糊成"雾霾"，
+     所以淡颗粒只铺一张；只有需要粗颗粒时才两张。
+     ------------------------------------------------------------------ */
   DFS.drawGrainVignette = function (ctx, frame, opts = {}) {
     const tiles = DFS.getGrain();
     const r = rng(frame * 7919 + 13);
+    const grain = opts.grain ?? 0.5;
     ctx.save();
-    // 颗粒：两张随机 offset 叠化，避免"翻页感"
     ctx.globalCompositeOperation = 'overlay';
-    ctx.globalAlpha = opts.grain ?? 0.5;
-    for (let i = 0; i < 2; i++) {
+    ctx.globalAlpha = grain;
+    const passes = grain > 0.28 ? 2 : 1;
+    for (let i = 0; i < passes; i++) {
       const tile = tiles[(frame + i) % tiles.length];
       const ox = -r() * 320, oy = -r() * 180;
       ctx.drawImage(tile, ox, oy, W * 1.22, H * 1.22);

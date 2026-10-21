@@ -221,52 +221,42 @@
     }
   };
 
-  /* ---------------- 人影（斗笠 + 长衫 + 杖） ---------------- */
-  DFS.figure = function (ctx, x, y, s, o = {}) {
-    const { color = '14,12,8', alpha = 1, t = 0, breath = 1, staff = true } = o;
+  /* ---------------- 人影：写意减笔（梁楷泼墨仙人式） ----------------
+     严禁火柴人 / 几何块拼接。只用 3~5 道极具张力的墨迹：
+       ① 宽袍主干（一道飞白大笔，随风吹出弧度）
+       ② 斗笠（一道扁弧）
+       ③ 迎风扬起的外袖
+       ④ 贴体的内袖
+       ⑤ 竹杖
+     wind 越大，下摆与袖口飘得越开。
+     ------------------------------------------------------------ */
+  DFS.figure = function (ctx, x, y, s, o) {
+    o = o || {};
+    const color = o.color || '14,12,8';
+    const alpha = o.alpha === undefined ? 1 : o.alpha;
+    const t = o.t || 0;
+    const staff = o.staff !== false;
+    const wind = o.wind === undefined ? (o.breath || 1) * 0.7 : o.wind;
+    const V4 = DFS.V4;
+    if (V4 && V4.fewFigure) {
+      V4.fewFigure(ctx, x, y, s, { color, alpha, t, wind, staff, seed: o.seed || 21 });
+      return;
+    }
+    // 兜底（未加载 V4 时）
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(s, s);
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = `rgba(${color},1)`;
-    const sway = Math.sin(t * 1.2) * 0.006 * breath;
-    ctx.rotate(sway);
-    // 斗笠
+    ctx.fillStyle = 'rgba(' + color + ',1)';
     ctx.beginPath();
-    ctx.moveTo(-26, -74);
-    ctx.quadraticCurveTo(0, -96, 26, -74);
-    ctx.quadraticCurveTo(0, -80, -26, -74);
-    ctx.closePath();
-    ctx.fill();
-    // 头/颈
-    ctx.fillRect(-5, -70, 10, 8);
-    // 长衫（梯形+下摆）
-    ctx.beginPath();
-    ctx.moveTo(-12, -62);
-    ctx.lineTo(12, -62);
+    ctx.moveTo(-12, -62); ctx.lineTo(12, -62);
     ctx.quadraticCurveTo(20, -30, 22, 0);
     ctx.quadraticCurveTo(0, 6, -22, 0);
     ctx.quadraticCurveTo(-20, -30, -12, -62);
-    ctx.closePath();
-    ctx.fill();
-    // 袖
-    ctx.beginPath();
-    ctx.moveTo(-11, -58);
-    ctx.quadraticCurveTo(-22, -40, -19, -22);
-    ctx.lineTo(-12, -24);
-    ctx.quadraticCurveTo(-13, -40, -7, -54);
-    ctx.closePath();
-    ctx.fill();
-    if (staff) {
-      ctx.strokeStyle = `rgba(${color},1)`;
-      ctx.lineWidth = 2.2;
-      ctx.beginPath();
-      ctx.moveTo(15, -52);
-      ctx.lineTo(19, 4);
-      ctx.stroke();
-    }
+    ctx.closePath(); ctx.fill();
     ctx.restore();
   };
+
 
   /* ---------------- 舟 ---------------- */
   DFS.boat = function (ctx, x, y, s, o = {}) {

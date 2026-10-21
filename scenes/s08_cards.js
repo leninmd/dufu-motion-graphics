@@ -15,9 +15,9 @@
       const st = DFS.STORY.texts;
       const tForge = clamp((L - 1.4) / 2.6);      // 地火
       const tSlips = clamp((L - 2.9) / 2.4);      // 铜简升起
-      const pMain = HUB.multiEntrance(L, 5.4, { duration: 1.0, rise: 24, blur: 8 });
-      const pNote = HUB.multiEntrance(L, 6.6, { duration: 0.9, rise: 16, blur: 5 });
-      const tOut = clamp((L - 11.4) / 0.8);
+      const pMain = HUB.multiEntrance(L, 5.6, { duration: 1.0, rise: 24, blur: 0 });
+      const pNote = HUB.multiEntrance(L, 8.3, { duration: 0.9, rise: 16, blur: 0 });
+      const tOut = clamp((L - 11.7) / 0.8);
 
       V3.eight(ctx, t, {
         void: true,
@@ -139,30 +139,32 @@
           }
         },
         l5: (c) => {
-          if (pMain.alpha > 0.01) {
-            c.save();
-            c.globalAlpha = pMain.alpha;
+          const V4 = DFS.V4;
+          if (V4) {
+            const m1 = V4.chantLine(c, st.s08_main, {
+              id: 's08_main', L, x: W * 0.5, y: 236, size: 92, weight: 900,
+              family: T.fonts.heavy, color: 'rgba(244,236,214,0.98)', tracking: 6, seed: 3, halo: 0.5
+            });
+            if (m1) DFS.dbgBox('s08_main', m1.x, m1.y, m1.x + m1.w, m1.y + m1.h);
+            const m2 = V4.chantLine(c, st.s08_note, {
+              id: 's08_note', L, x: W * 0.5 + 250, y: 848, size: 34, weight: 400,
+              family: T.fonts.serif, color: 'rgba(214,206,186,0.9)', tracking: 4, seed: 7, halo: 0.5
+            });
+            if (m2) DFS.dbgBox('s08_note', m2.x, m2.y, m2.x + m2.w, m2.y + m2.h);
+            if (pNote.alpha > 0.01) {
+              c.save();
+              c.globalAlpha = pNote.alpha * 0.6;
+              V3.inkText(c, st.s08_note_src, {
+                x: W * 0.5 + 330, y: 898, size: 20, weight: 400,
+                family: T.fonts.serif, color: 'rgba(196,188,168,0.8)', halo: 0.5
+              });
+              c.restore();
+            }
+          } else {
             V3.inkText(c, st.s08_main, {
-              x: W * 0.5, y: 236 - pMain.dy * 0.5, size: 92, weight: 900,
+              x: W * 0.5, y: 236, size: 92, weight: 900,
               family: T.fonts.heavy, color: 'rgba(244,236,214,0.98)', tracking: 6
             });
-            DFS.dbgBox('s08_main', W * 0.5 - 460, 180, W * 0.5 + 460, 296);
-            c.restore();
-          }
-          if (pNote.alpha > 0.01) {
-            c.save();
-            c.globalAlpha = pNote.alpha * 0.92;
-            V3.inkText(c, st.s08_note, {
-              x: W * 0.5 + 250, y: 848 - pNote.dy * 0.4, size: 34, weight: 400,
-              family: T.fonts.serif, color: 'rgba(214,206,186,0.9)'
-            });
-            c.globalAlpha = pNote.alpha * 0.6;
-            V3.inkText(c, st.s08_note_src, {
-              x: W * 0.5 + 330, y: 898 - pNote.dy * 0.3, size: 20, weight: 400,
-              family: T.fonts.serif, color: 'rgba(196,188,168,0.8)'
-            });
-            DFS.dbgBox('s08_note', W * 0.5 - 40, 810, W * 0.5 + 700, 920);
-            c.restore();
           }
         }
       });

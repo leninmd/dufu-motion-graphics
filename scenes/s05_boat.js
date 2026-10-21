@@ -40,8 +40,8 @@
     [634, 690], [578, 790], [556, 880], [568, 960], [528, 1080]];
   const EDGE_R = mir(EDGE_L);
   // 远处：江道尽头的一道低山（纵深）
-  const FAR_RIDGE = [[600, 520], [690, 458], [762, 476], [840, 434], [922, 466], [1002, 430],
-    [1082, 462], [1162, 432], [1242, 468], [1310, 520]];
+  const FAR_RIDGE = [[556, 524], [628, 492], [700, 476], [772, 462], [844, 474], [916, 452],
+    [990, 468], [1064, 450], [1140, 472], [1216, 486], [1290, 506], [1352, 524]];
 
   DFS.sceneRegistry['s05'] = class Scene05V3 {
     constructor() {
@@ -81,6 +81,21 @@
       c.beginPath();
       c.moveTo(pts[0][0], pts[0][1]);
       for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+      c.closePath();
+    }
+    /* 平滑多边形：中点二次曲线 —— 山脊不能是折线 */
+    _polySmooth(c, pts) {
+      const n = pts.length;
+      if (n < 3) { this._poly(c, pts); return; }
+      c.beginPath();
+      const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      const m0 = mid(pts[n - 1], pts[0]);
+      c.moveTo(m0[0], m0[1]);
+      for (let i = 0; i < n; i++) {
+        const p = pts[i];
+        const m = mid(p, pts[(i + 1) % n]);
+        c.quadraticCurveTo(p[0], p[1], m[0], m[1]);
+      }
       c.closePath();
     }
     _polyAdd(c, pts) {
@@ -146,7 +161,7 @@
       // 更远的一层：淡影
       c.save();
       c.globalAlpha = 0.55;
-      this._poly(c, FAR_RIDGE);
+      this._polySmooth(c, FAR_RIDGE);
       const g0 = c.createLinearGradient(0, 420, 0, 540);
       g0.addColorStop(0, '#2A362E');
       g0.addColorStop(1, '#39473C');
@@ -156,7 +171,7 @@
 
       // 近一层：略深，压在水线上
       const ridge2 = FAR_RIDGE.map(([x, y]) => [x, y + 46]);
-      this._poly(c, ridge2);
+      this._polySmooth(c, ridge2);
       const g = c.createLinearGradient(0, 470, 0, HZ);
       g.addColorStop(0, '#131A15');
       g.addColorStop(0.55, '#1B241D');
@@ -343,44 +358,45 @@
         this._poly(c, pts);
         c.clip();
         const r = DFS.rng(seed);
-        // 折面（玄铁的暗反光）
-        for (let i = 0; i < 12; i++) {
-          const x = -60 + r() * 840;
-          const y = 60 + r() * 340;
-          const w2 = 90 + r() * 320, h2 = 170 + r() * 560;
-          c.globalAlpha = 0.10 + r() * 0.18;
-          c.fillStyle = r() > 0.5 ? 'rgba(32,42,48,1)' : 'rgba(6,8,10,1)';
+        // 玄铁的暗反光：不规则的折面（绝不再是大矩形补丁）
+        for (let i = 0; i < 9; i++) {
+          const x = -60 + r() * 860;
+          const y = 40 + r() * 360;
+          const w2 = 60 + r() * 230, h2 = 140 + r() * 460;
+          c.globalAlpha = 0.05 + r() * 0.10;
+          c.fillStyle = r() > 0.45 ? 'rgba(30,40,46,1)' : 'rgba(6,8,10,1)';
           c.beginPath();
-          c.moveTo(x, y);
-          c.lineTo(x + w2, y + (r() - 0.5) * 90);
-          c.lineTo(x + w2 * 0.7, y + h2);
-          c.lineTo(x - w2 * 0.15, y + h2 * 0.8);
+          const j = () => (r() - 0.5) * 46;
+          c.moveTo(x + j(), y + j() * 0.6);
+          c.quadraticCurveTo(x + w2 * 0.6, y - 24 + j(), x + w2 + j(), y + h2 * 0.32 + j());
+          c.quadraticCurveTo(x + w2 * 0.72, y + h2 * 0.72 + j(), x + w2 * 0.34, y + h2 + j());
+          c.quadraticCurveTo(x - w2 * 0.08, y + h2 * 0.62 + j(), x - w2 * 0.05, y + h2 * 0.24);
           c.closePath();
           c.fill();
         }
-        // 竖向岩理
-        for (let i = 0; i < 58; i++) {
-          const x = -60 + r() * 880;
+        // 崖面：枯笔皴擦（不是均匀的竖向划痕）
+        const V4L = DFS.V4;
+        for (let i = 0; i < 44; i++) {
+          const x = -60 + r() * 900;
           const y = 60 + r() * 1000;
-          const h2 = 60 + r() * 320;
-          c.globalAlpha = 0.04 + r() * 0.10;
-          c.strokeStyle = r() > 0.42 ? 'rgba(92,110,106,1)' : 'rgba(4,6,8,1)';
-          c.lineWidth = 1.2 + r() * 7;
-          c.beginPath();
-          c.moveTo(x, y);
-          c.lineTo(x + (r() - 0.5) * 30, y + h2);
-          c.stroke();
-        }
-        // 横向层理
-        for (let i = 0; i < 16; i++) {
-          const y = 120 + r() * 940;
-          c.globalAlpha = 0.03 + r() * 0.06;
-          c.strokeStyle = 'rgba(124,144,138,1)';
-          c.lineWidth = 1 + r() * 2.6;
-          c.beginPath();
-          c.moveTo(-60, y);
-          c.lineTo(780, y + (r() - 0.5) * 30);
-          c.stroke();
+          const h2 = 40 + r() * 170;
+          const light = r() > 0.55;
+          if (V4L) {
+            V4L.inkStroke(c, x, y, x + (r() - 0.5) * 46, y + h2, {
+              w: 1.4 + r() * 5.2,
+              alpha: (light ? 0.10 : 0.16) + r() * 0.16,
+              color: light ? '96,116,110' : '2,4,5',
+              dry: 0.72, seed: 400 + i
+            });
+          } else {
+            c.globalAlpha = 0.05 + r() * 0.10;
+            c.strokeStyle = light ? 'rgba(92,110,106,1)' : 'rgba(4,6,8,1)';
+            c.lineWidth = 1.2 + r() * 7;
+            c.beginPath();
+            c.moveTo(x, y);
+            c.lineTo(x + (r() - 0.5) * 30, y + h2);
+            c.stroke();
+          }
         }
         // 石裂
         for (let i = 0; i < 8; i++) {
@@ -576,8 +592,18 @@
       c.restore();
     }
 
-    /* ---------------- 竖排大字（逐字墨渗入场） ---------------- */
+    /* ---------------- 竖排大字（句读律动：杜诗吟诵） ---------------- */
     _colText(c, text, o) {
+      const V4 = DFS.V4;
+      if (V4 && V4.cue(o.id)) {
+        const m = V4.chantColumn(c, text, {
+          id: o.id, L: o.L, x: o.x, top: o.top, size: o.size, gap: o.gap || 1.10,
+          weight: o.weight || 900, family: o.family, color: o.color,
+          seed: o.seed || 21, alpha: o.alpha === undefined ? 1 : o.alpha, halo: 0.44
+        });
+        if (m) DFS.dbgBox(o.id, m.x - m.w * 0.5, m.top - m.w * 0.5, m.x + m.w * 0.5, m.top + m.h);
+        return;
+      }
       const chars = Array.from(text);
       const size = o.size;
       const step = size * (o.gap ?? 1.10);
@@ -604,6 +630,16 @@
 
     /* ---------------- 下方居中一句 ---------------- */
     _noteText(c, text, o) {
+      const V4 = DFS.V4;
+      if (V4 && V4.cue(o.id)) {
+        const m = V4.chantLine(c, text, {
+          id: o.id, L: o.L, x: CX, y: o.y, size: o.size, weight: o.weight || 500,
+          family: T.fonts.serif, color: o.color, tracking: 3,
+          seed: o.seed || 5, alpha: o.alpha === undefined ? 1 : o.alpha, halo: 0.5
+        });
+        if (m) DFS.dbgBox(o.id, m.x - 6, m.y, m.x + m.w + 6, m.y + m.h);
+        return;
+      }
       const e = HUB.multiEntrance(o.L, o.start, { duration: 0.85, rise: 18, scaleFrom: 0.99 });
       if (e.alpha <= 0.008) return;
       const chars = Array.from(text);
@@ -634,7 +670,7 @@
     /* ---------------- 排版层 ---------------- */
     _text(c, L, t) {
       const st = DFS.STORY.texts;
-      const e0 = HUB.multiEntrance(L, 9.62, { duration: 0.8, rise: 0 });
+      const e0 = HUB.multiEntrance(L, 6.90, { duration: 0.8, rise: 0 });
       if (e0.alpha > 0.01) {
         c.save();
         c.translate(CX, 930);
@@ -649,13 +685,13 @@
         c.restore();
       }
       this._colText(c, st.s05_a, {
-        id: 's05_a', x: 1700, top: 198, size: 78, gap: 1.10, start: 7.90, L, t, color: INK, seed: 21
+        id: 's05_a', x: 1700, top: 198, size: 78, gap: 1.10, start: 5.60, L, t, color: INK, seed: 21
       });
       this._colText(c, st.s05_b, {
-        id: 's05_b', x: 1600, top: 214, size: 78, gap: 1.10, start: 9.40, L, t, color: INK, seed: 37
+        id: 's05_b', x: 1600, top: 214, size: 78, gap: 1.10, start: 6.50, L, t, color: INK, seed: 37
       });
       this._noteText(c, st.s05_note, {
-        id: 's05_note', y: 930, size: 34, start: 9.62, L, t,
+        id: 's05_note', y: 930, size: 34, start: 6.90, L, t,
         color: 'rgba(244,239,230,0.86)', weight: 500, seed: 11
       });
     }

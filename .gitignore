@@ -22,6 +22,17 @@ output/v3_qa/
 output/v3_release/dufu_v3_silent_master.mp4
 output/v3_release/*.log
 
+# V4 中间产物（5280 帧 ≈ 2.4GB，只留本地）
+output/v4_work/
+output/v4_qa/
+output/v4_smoke/
+output/v4_stills/
+output/v4_release/*.log
+# V4 成片：母版太大，只入库分享版与预览版
+output/v4_release/dufu_v4_master_1080p60.mp4
+!output/v4_release/dufu_v4_share_1080p.mp4
+!output/v4_release/dufu_v4_preview_720p.mp4
+
 # ---- 第三方参考仓库（clone 下来拆解用，不入库） ----
 vendor/reference-repos/
 

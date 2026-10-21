@@ -22,7 +22,7 @@
   const TAU = Math.PI * 2;
   const h = hash;
 
-  const SCENE_START = 24.1;          // 章节起点（t = L + 24.1）
+  const SCENE_START = 16.0;          // V4 章节起点（t = L + 16.0）
 
   /* ---------------- 场景内时间轴（秒） ---------------- */
   const TL = {
@@ -401,12 +401,13 @@
       const cam = this.cam;
       cam.pos.x = pan;
 
+      // V4：远山化进纸里、近山压到焦墨 —— 拉开黑白张力
       const fills = [
-        mixRGB([112, 150, 138], [44, 36, 30], rotP),
-        mixRGB([72, 112, 98], [35, 29, 24], rotP),
-        mixRGB([40, 74, 60], [27, 22, 18], rotP)
+        mixRGB([150, 176, 164], [52, 44, 36], rotP),
+        mixRGB([62, 102, 88], [28, 24, 20], rotP),
+        mixRGB([16, 26, 22], [10, 9, 8], rotP)
       ];
-      const alphas = [0.24, 0.34, 0.46];
+      const alphas = [0.13, 0.42, 0.80];
 
       for (let i = 0; i < 3; i++) {
         if (!this._ridgePath(c, i)) continue;
@@ -674,194 +675,104 @@
       c.restore();
     }
 
-    _gateLeaf(c, xOuter, xInner, L) {
-      const x0 = Math.min(xOuter, xInner);
-      const x1 = Math.max(xOuter, xInner);
-      if (x1 < -60 || x0 > W + 60) return;
-      const dir = xInner > xOuter ? 1 : -1;
-      const top = -50, bot = H;
-      const w = x1 - x0;
+    /* =====================================================================
+       镜头 3 — 铜门合拢（V4：界画铜门 + 大片黑留白）
+       铜门只占画面中央 62%，四周是纯黑深渊 —— 留白本身就是压迫感。
+       ===================================================================== */
+    _doorLeaf(c, side, gapHalf, e, t) {
+      // side: -1 左扇 / +1 右扇；gapHalf: 中缝半宽
+      const xInner = W * 0.5 + side * gapHalf;
+      const xOuter = side < 0 ? xInner - W * 0.31 : xInner + W * 0.31;
+      const y0 = H * 0.08, y1 = H * 0.96;
+      const xa = Math.min(xInner, xOuter), xb = Math.max(xInner, xOuter);
 
-      c.save();
-      c.beginPath();
-      c.rect(x0, top, w, bot - top);
-      c.clip();
-
-      const g = c.createLinearGradient(xOuter, 0, xInner, 0);
-      g.addColorStop(0, BRONZE_LO);
-      g.addColorStop(0.30, '#372C1E');
-      g.addColorStop(0.62, '#4D3E26');
-      g.addColorStop(0.86, BRONZE_HI);
-      g.addColorStop(1, '#8E7844');
+      // ——— 门板：暗铜色，横向由内向外渐深 ———
+      const g = c.createLinearGradient(xInner, 0, xOuter, 0);
+      g.addColorStop(0, 'rgba(52,36,17,1)');
+      g.addColorStop(0.22, 'rgba(22,16,9,1)');
+      g.addColorStop(0.55, 'rgba(12,9,5,1)');
+      g.addColorStop(1, 'rgba(4,3,2,1)');
       c.fillStyle = g;
-      c.fillRect(x0, top, w, bot - top);
+      c.fillRect(xa, y0, xb - xa, y1 - y0);
 
-      let vg = vGrad(c, top, 180, [
-        [0, 'rgba(8,6,4,0.74)'],
-        [1, 'rgba(8,6,4,0)']
-      ]);
-      c.fillStyle = vg;
-      c.fillRect(x0, top, w, 230);
-      vg = vGrad(c, H - 200, H, [
-        [0, 'rgba(8,6,4,0)'],
-        [1, 'rgba(12,8,5,0.58)']
-      ]);
-      c.fillStyle = vg;
-      c.fillRect(x0, H - 200, w, 200);
-
-      const step = 46;
-      const nRib = Math.ceil(w / step) + 2;
-      for (let k = 0; k < nRib; k++) {
-        const rx = xInner - dir * (26 + k * step);
-        if (rx < x0 - 6 || rx > x1 + 6) continue;
-        c.globalAlpha = 0.85;
-        c.strokeStyle = 'rgba(12,9,6,0.62)';
-        c.lineWidth = 3.4;
-        c.beginPath();
-        c.moveTo(rx, top);
-        c.lineTo(rx, bot);
-        c.stroke();
-        c.globalAlpha = 0.55;
-        c.strokeStyle = 'rgba(198,170,116,0.30)';
-        c.lineWidth = 1.2;
-        c.beginPath();
-        c.moveTo(rx + dir * 3.0, top);
-        c.lineTo(rx + dir * 3.0, bot);
-        c.stroke();
-      }
-      c.globalAlpha = 1;
-
-      for (const yy of [176, 566, 952]) {
-        c.strokeStyle = 'rgba(10,7,5,0.66)';
-        c.lineWidth = 5;
-        c.beginPath();
-        c.moveTo(x0, yy);
-        c.lineTo(x1, yy);
-        c.stroke();
-        c.strokeStyle = 'rgba(206,178,122,0.22)';
-        c.lineWidth = 1.6;
-        c.beginPath();
-        c.moveTo(x0, yy + 5.5);
-        c.lineTo(x1, yy + 5.5);
-        c.stroke();
+      // ——— 三道门带（横向铜条）———
+      for (let k = 0; k < 3; k++) {
+        const yy = y0 + (y1 - y0) * (0.18 + k * 0.32);
+        const bg = c.createLinearGradient(xInner, 0, xOuter, 0);
+        bg.addColorStop(0, 'rgba(206,158,84,0.92)');
+        bg.addColorStop(0.35, 'rgba(120,88,40,0.7)');
+        bg.addColorStop(1, 'rgba(26,20,10,0.5)');
+        c.fillStyle = bg;
+        c.fillRect(xa, yy, xb - xa, 7);
       }
 
-      const rowStep = 112, colStep = 104;
-      const rows = Math.ceil((bot - top) / rowStep) + 1;
-      const cols = Math.ceil(w / colStep) + 1;
-      for (let rI = 0; rI < rows; rI++) {
-        const ny = top + 62 + rI * rowStep;
-        if (ny < top + 24 || ny > bot - 20) continue;
-        const stagger = (rI % 2) * (colStep * 0.5);
-        for (let cI = 0; cI < cols; cI++) {
-          const nx = xInner - dir * (72 + cI * colStep + stagger);
-          if (nx < x0 + 16 || nx > x1 - 6) continue;
-          const ng = c.createRadialGradient(nx - 4, ny - 5, 1, nx, ny, 15);
-          ng.addColorStop(0, '#8E7846');
-          ng.addColorStop(0.55, '#5D4B2C');
-          ng.addColorStop(1, '#2E2418');
-          c.fillStyle = ng;
+      // ——— 门钉：三排，少而大（不再是一整片铆钉阵）———
+      const V4 = DFS.V4;
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 4; col++) {
+          const nx = side < 0
+            ? xInner - (W * 0.31) * (0.20 + col * 0.24)
+            : xInner + (W * 0.31) * (0.20 + col * 0.24);
+          const ny = y0 + (y1 - y0) * (0.30 + row * 0.21);
+          const rr = 13 - col * 1.4;
+          const rg = c.createRadialGradient(nx - rr * 0.35, ny - rr * 0.4, 1, nx, ny, rr);
+          rg.addColorStop(0, 'rgba(212,168,96,0.95)');
+          rg.addColorStop(0.6, 'rgba(140,102,48,0.95)');
+          rg.addColorStop(1, 'rgba(40,28,14,0.95)');
+          c.fillStyle = rg;
           c.beginPath();
-          c.arc(nx, ny, 13, 0, TAU);
+          c.arc(nx, ny, rr, 0, Math.PI * 2);
           c.fill();
-          c.fillStyle = 'rgba(240,220,168,0.55)';
-          c.beginPath();
-          c.arc(nx - 4.2, ny - 4.6, 2.6, 0, TAU);
-          c.fill();
-          c.strokeStyle = 'rgba(8,6,4,0.55)';
-          c.lineWidth = 1.6;
-          c.beginPath();
-          c.arc(nx, ny, 13.6, 0, TAU);
-          c.stroke();
         }
       }
 
-      const eg = c.createLinearGradient(xInner - dir * 130, 0, xInner, 0);
-      eg.addColorStop(0, 'rgba(255,214,150,0)');
-      eg.addColorStop(1, 'rgba(255,214,150,0.14)');
+      // ——— 铺首衔环（每扇一个）———
+      const px = side < 0 ? xInner - W * 0.09 : xInner + W * 0.09;
+      const py = H * 0.60;
+      if (V4) {
+        V4.inkStroke(c, px - 26, py - 22, px + 26, py - 20, { w: 9, alpha: 0.85, color: '196,150,80', dry: 0.3, seed: 71 });
+        V4.inkStroke(c, px - 26, py + 22, px + 26, py + 20, { w: 9, alpha: 0.85, color: '196,150,80', dry: 0.3, seed: 73 });
+      }
+      c.strokeStyle = 'rgba(206,162,92,0.92)';
+      c.lineWidth = 7;
+      c.beginPath();
+      c.arc(px, py + 46, 34, 0, Math.PI * 2);
+      c.stroke();
+      c.strokeStyle = 'rgba(60,42,20,0.7)';
+      c.lineWidth = 3;
+      c.beginPath();
+      c.arc(px, py + 46, 34, 0, Math.PI * 2);
+      c.stroke();
+
+      // ——— 内缘金边（迎光的那一侧）———
+      const eg = c.createLinearGradient(xInner - side * 30, 0, xInner, 0);
+      eg.addColorStop(0, 'rgba(255,226,168,0)');
+      eg.addColorStop(1, 'rgba(255,226,168,0.85)');
       c.fillStyle = eg;
-      c.fillRect(Math.min(xInner - dir * 130, xInner), top, 130, bot - top);
-
-      c.restore();
+      c.fillRect(xInner - side * 30, y0, side * 30, y1 - y0);
     }
 
-    _seam(c, L, e, dt) {
-      const x = W * 0.5;
-      const hot = Math.pow(e, 2.4);
-      if (hot <= 0.01 && dt < 0) return;
+    _gateSparks(c, dt) {
+      if (dt < -0.35 || dt > 1.6) return;
+      const p = clamp((dt + 0.35) / 1.95);
+      const r = DFS.rng(6120);
       c.save();
       c.globalCompositeOperation = 'lighter';
-      const g = c.createLinearGradient(x - 70, 0, x + 70, 0);
-      g.addColorStop(0, 'rgba(255,176,86,0)');
-      g.addColorStop(0.40, `rgba(255,182,100,${(0.10 * hot).toFixed(3)})`);
-      g.addColorStop(0.5, `rgba(255,228,182,${(0.30 * hot).toFixed(3)})`);
-      g.addColorStop(0.60, `rgba(255,182,100,${(0.10 * hot).toFixed(3)})`);
-      g.addColorStop(1, 'rgba(255,176,86,0)');
-      c.fillStyle = g;
-      c.fillRect(x - 70, 0, 140, H);
-
-      const coreA = hot * 0.75;
-      if (coreA > 0.01) {
-        const cg = c.createLinearGradient(x - 3.4, 0, x + 3.4, 0);
-        cg.addColorStop(0, 'rgba(255,236,198,0)');
-        cg.addColorStop(0.5, `rgba(255,246,224,${coreA.toFixed(3)})`);
-        cg.addColorStop(1, 'rgba(255,236,198,0)');
-        c.fillStyle = cg;
-        c.fillRect(x - 3.4, 0, 6.8, H);
-      }
-
-      if (dt >= 0) {
-        const fade = 1 - clamp(dt / 1.6);
-        const gw = 6 + 46 * clamp(dt / 0.9);
-        const g2 = c.createLinearGradient(x - gw, 0, x + gw, 0);
-        g2.addColorStop(0, 'rgba(255,236,200,0)');
-        g2.addColorStop(0.5, `rgba(255,246,224,${(0.46 * fade).toFixed(3)})`);
-        g2.addColorStop(1, 'rgba(255,236,200,0)');
-        c.fillStyle = g2;
-        c.fillRect(x - gw, 0, gw * 2, H);
-      }
-      c.restore();
-    }
-
-    _sparks(c, dt) {
-      if (dt < 0 || dt > 1.55) return;
-      c.save();
-      c.globalCompositeOperation = 'lighter';
-      const g = 1500;
-      for (const s of this.sparks) {
-        if (dt > s.life) continue;
-        const x = W * 0.5 + s.dir * (10 + s.vx * dt);
-        const y = s.y0 + s.vy * dt + 0.5 * g * dt * dt;
-        if (x < -20 || x > W + 20 || y < -20 || y > H + 20) continue;
-        const k = 1 - dt / s.life;
-        c.globalAlpha = k * k * (0.55 + 0.45 * Math.sin(s.ph + dt * 30));
-        c.fillStyle = s.hot ? 'rgba(255,226,168,1)' : `rgba(${SPARK},1)`;
-        const sz = s.size * (0.6 + k * 0.6);
-        const tx = x - s.dir * (s.vx * 0.016);
-        const ty = y - (s.vy + g * dt) * 0.016;
-        c.strokeStyle = c.fillStyle;
-        c.lineWidth = Math.max(1, sz * 0.7);
+      for (let i = 0; i < 180; i++) {
+        const a0 = r() * Math.PI * 2;
+        const spd = 260 + r() * 900;
+        const life = 0.4 + r() * 0.9;
+        const tt = clamp(p / life);
+        if (tt > 1) continue;
+        const px = W * 0.5 + Math.cos(a0) * spd * tt * 0.55;
+        const py = H * 0.52 + Math.sin(a0) * spd * tt * 0.42 + 420 * tt * tt;
+        const alpha = (1 - tt) * (0.25 + r() * 0.65);
+        c.fillStyle = 'rgba(255,' + Math.round(150 + r() * 70) + ',' + Math.round(60 + r() * 60) + ',' + alpha.toFixed(3) + ')';
+        const sz = 1 + r() * 2.6;
         c.beginPath();
-        c.moveTo(tx, ty);
-        c.lineTo(x, y);
-        c.stroke();
-        c.fillRect(x - sz * 0.5, y - sz * 0.5, sz, sz);
+        c.arc(px, py, sz, 0, 6.28318);
+        c.fill();
       }
-      c.restore();
-    }
-
-    _impactFlash(c, dt) {
-      if (dt < 0 || dt > 0.10) return;
-      const a = 1 - clamp(dt / 0.09);
-      c.save();
-      c.globalCompositeOperation = 'lighter';
-      c.fillStyle = `rgba(255,252,244,${(a * 0.92).toFixed(3)})`;
-      c.fillRect(-60, -60, W + 120, H + 120);
-      const g = c.createRadialGradient(W * 0.5, H * 0.5, 10, W * 0.5, H * 0.5, W * 0.62);
-      g.addColorStop(0, `rgba(255,240,206,${(a * 0.55).toFixed(3)})`);
-      g.addColorStop(1, 'rgba(255,220,160,0)');
-      c.fillStyle = g;
-      c.fillRect(-60, -60, W + 120, H + 120);
       c.restore();
     }
 
@@ -869,632 +780,210 @@
       const closeP = clamp((L - TL.gateIn) / (TL.hit - TL.gateIn));
       const e = Math.pow(closeP, 1.75);
       const dt = L - TL.hit;
-
       const absFrame = Math.round(t * FPS);
       const shake = dt >= -0.001
-        ? HUB.cameraShake(absFrame, {
-            amp: 18, decay: 6, seed: 17,
-            startFrame: Math.round((SCENE_START + TL.hit) * FPS)
-          })
+        ? HUB.cameraShake(absFrame, { amp: 11, decay: 7, startFrame: Math.round((SCENE_START + TL.hit) * FPS), seed: 13 })
         : { x: 0, y: 0, rot: 0 };
+      const gapHalf = lerp(210, 4, e);
+      const flash = dt >= 0 && dt < 0.22 ? (1 - dt / 0.22) : 0;
 
-      ctx.fillStyle = '#070605';
-      ctx.fillRect(0, 0, W, H);
-
-      ctx.save();
-      ctx.translate(W / 2 + shake.x, H / 2 + shake.y);
-      if (shake.rot) ctx.rotate(shake.rot);
-      ctx.translate(-W / 2, -H / 2);
+      HUB.applyCameraShake(ctx, shake);
 
       V3.eight(ctx, t, {
-        l1: (c) => this._charredBackdrop(c, L, t),
-        l2: (c) => {
-          const half = lerp(1000, 0, e);
-          const xE = W * 0.5 - half;
-          const xL = W * 0.5 + half;
-          if (half > 6) {
-            const sg = c.createLinearGradient(xE, 0, xE + 150, 0);
-            sg.addColorStop(0, 'rgba(4,3,2,0.85)');
-            sg.addColorStop(1, 'rgba(4,3,2,0)');
-            c.fillStyle = sg;
-            c.fillRect(xE, 0, 150, H);
-            const sg2 = c.createLinearGradient(xL, 0, xL - 150, 0);
-            sg2.addColorStop(0, 'rgba(4,3,2,0.85)');
-            sg2.addColorStop(1, 'rgba(4,3,2,0)');
-            c.fillStyle = sg2;
-            c.fillRect(xL - 150, 0, 150, H);
-          }
-          this._gateLeaf(c, xE - 1980, xE, L);
-          this._gateLeaf(c, xL + 1980, xL, L);
-          this._seam(c, L, e, dt);
-        },
-        l3: (c) => this._sparks(c, dt),
-        l4: (c) => this._impactFlash(c, dt),
+        void: true,
+        voidInner: '#171208', voidMid: '#0A0805', voidOuter: '#020202',
         grade: 'warm',
-        dust: true,
-        dustAlpha: 0.34 + (dt > 0 ? 0.22 : 0),
-        dustOpts: { count: 130, color: '196,86,46', seed: 4901 },
-        grain: 0.40,
-        vignette: 0.34,
-        vignetteMid: 0.05
+        grain: 0.30, vignette: 0.30, vignetteMid: 0.03,
+        dustAlpha: 0.18,
+        dustOpts: { count: 40, color: '236,206,150', seed: 4109 },
+        l2: (c) => {
+          // 门缝里的光（合拢前）
+          if (gapHalf > 6) {
+            const lg = c.createLinearGradient(W * 0.5 - gapHalf, 0, W * 0.5 + gapHalf, 0);
+            lg.addColorStop(0, 'rgba(255,206,130,0)');
+            lg.addColorStop(0.5, 'rgba(255,226,164,0.55)');
+            lg.addColorStop(1, 'rgba(255,206,130,0)');
+            c.fillStyle = lg;
+            c.fillRect(W * 0.5 - gapHalf, 0, gapHalf * 2, H);
+          }
+          this._doorLeaf(c, -1, gapHalf, e, t);
+          this._doorLeaf(c, +1, gapHalf, e, t);
+        },
+        l3: (c) => {
+          const g = c.createRadialGradient(W * 0.5, H * 0.5, 20, W * 0.5, H * 0.5, H * 0.86);
+          const a = 0.10 + 0.42 * Math.pow(e, 2.2);
+          g.addColorStop(0, 'rgba(255,198,116,' + (a * 0.9).toFixed(3) + ')');
+          g.addColorStop(1, 'rgba(255,198,116,0)');
+          c.fillStyle = g;
+          c.fillRect(0, 0, W, H);
+        },
+        l4: (c) => {
+          this._gateSparks(c, dt);
+        }
       });
 
-      ctx.restore();
+      if (flash > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = flash * 0.85;
+        ctx.fillStyle = '#FFF6E2';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
     }
 
     /* =====================================================================
-       镜头 4 — 微距（杯 / 酒）→ 下摇（雪下的手）
+       镜头 4 — 微距：倾覆的镏金樽与朱砂酒渍（V4：水墨 + 大留白）
+       纸面占 65%，一只倒在纸上的杯子，酒浆沿纸纹漫开。
        ===================================================================== */
-    _macroGround(c, L, t) {
-      const g = vGrad(c, 60, 2200, [
-        [0, '#22272C'],
-        [0.16, '#171B1F'],
-        [0.42, '#101316'],
-        [0.60, '#0C0F12'],
-        [0.74, '#161C22'],
-        [1, '#0A0D10']
-      ]);
-      c.fillStyle = g;
-      c.fillRect(-300, 40, W + 600, 2260);
-
-      softEllipse(c, 1120, 420, 840, 330, '146,168,182', 0.12);
-      softEllipse(c, 420, 780, 720, 340, '8,10,12', 0.55);
-      softEllipse(c, 1660, 1020, 660, 300, '8,10,12', 0.45);
-      softEllipse(c, 960, 1240, 940, 360, '118,138,152', 0.09);
-      softEllipse(c, 1420, 1560, 620, 240, '128,146,160', 0.07);
-      // 霜斑（地面上不匀的白）
-      const rf = DFS.rng(6171);
-      for (let i = 0; i < 16; i++) {
-        const x = 120 + rf() * 1700;
-        const y = 240 + rf() * 1100;
-        softEllipse(c, x, y, 90 + rf() * 190, 30 + rf() * 60, '168,188,202', 0.035 + rf() * 0.05);
-      }
-
+    _wineStain(c, L, t, cx, cy) {
+      const grow = clamp((L - TL.macro + 0.35) / 1.5);
+      if (grow <= 0.001) return;
+      const e = DFS.Ease.outCubic(grow);
+      const r = DFS.rng(3341);
       c.save();
-      c.globalCompositeOperation = 'lighter';
-      c.lineCap = 'round';
-      for (const ck of this.cracks) {
-        c.strokeStyle = `rgba(198,218,230,${ck.a})`;
-        c.lineWidth = ck.w;
+      // 主体：多层不规则椭圆叠出毛细边缘
+      for (let k = 0; k < 7; k++) {
+        const a = 1 - k * 0.11;
+        const rx = (60 + k * 26) * e * (0.8 + r() * 0.5);
+        const ry = (38 + k * 15) * e * (0.8 + r() * 0.5);
+        const ox = cx - 120 * e + (r() - 0.5) * 90 * e;
+        const oy = cy + 26 + (r() - 0.5) * 60 * e;
+        const g = c.createRadialGradient(ox, oy, 0, ox, oy, Math.max(rx, ry));
+        g.addColorStop(0, 'rgba(96,14,10,' + (0.55 * a * e).toFixed(3) + ')');
+        g.addColorStop(0.62, 'rgba(78,10,8,' + (0.34 * a * e).toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(70,8,6,0)');
+        c.fillStyle = g;
+        c.save();
+        c.translate(ox, oy);
+        c.scale(1, ry / Math.max(1, rx));
         c.beginPath();
-        c.moveTo(ck.pts[0][0], ck.pts[0][1]);
-        for (let i = 1; i < ck.pts.length; i++) c.lineTo(ck.pts[i][0], ck.pts[i][1]);
-        c.stroke();
+        c.arc(0, 0, rx, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
       }
-      for (const f of this.frost) {
-        c.globalAlpha = f.a;
-        c.strokeStyle = 'rgba(214,230,240,1)';
-        c.lineWidth = 0.9;
-        const ca = Math.cos(f.ang), sa = Math.sin(f.ang);
-        c.beginPath();
-        c.moveTo(f.x, f.y);
-        c.lineTo(f.x + ca * f.len, f.y + sa * f.len * 0.35);
-        c.stroke();
-      }
-      c.restore();
-    }
-
-    _macroThreshold(c) {
-      const g = vGrad(c, -160, 126, [
-        [0, '#1B160F'],
-        [0.7, '#2A2118'],
-        [1, '#3C3020']
-      ]);
-      c.fillStyle = g;
-      c.fillRect(-140, -180, W + 280, 310);
-      // 门底的竖向铜条（暗示门面，但不抢戏）
-      c.globalAlpha = 0.35;
-      for (let i = 0; i < 26; i++) {
-        const x = -60 + i * 78;
-        c.strokeStyle = 'rgba(12,9,6,0.8)';
-        c.lineWidth = 3;
-        c.beginPath();
-        c.moveTo(x, -180);
-        c.lineTo(x, 126);
-        c.stroke();
-        c.strokeStyle = 'rgba(196,168,112,0.35)';
-        c.lineWidth = 1.2;
-        c.beginPath();
-        c.moveTo(x + 3, -180);
-        c.lineTo(x + 3, 126);
-        c.stroke();
-      }
-      c.globalAlpha = 1;
-      // 底沿铜光
-      c.strokeStyle = 'rgba(206,172,110,0.26)';
-      c.lineWidth = 2.6;
+      // 湿边：边缘的一道深色沉淀
+      c.strokeStyle = 'rgba(58,6,5,' + (0.34 * e).toFixed(3) + ')';
+      c.lineWidth = 3.2;
+      const N = 64;
       c.beginPath();
-      c.moveTo(-140, 124);
-      c.lineTo(W + 140, 124);
+      for (let i = 0; i <= N; i++) {
+        const ang = (i / N) * Math.PI * 2;
+        const wob = 1 + 0.16 * Math.sin(ang * 3 + 1.2) + 0.10 * Math.sin(ang * 7 + 0.4);
+        const px = cx - 118 * e + Math.cos(ang) * 232 * e * wob;
+        const py = cy + 26 + Math.sin(ang) * 136 * e * wob;
+        if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      }
       c.stroke();
-      // 门底投在地上的暗影
-      const sh = vGrad(c, 124, 330, [
-        [0, 'rgba(4,5,7,0.78)'],
-        [1, 'rgba(4,5,7,0)']
-      ]);
-      c.fillStyle = sh;
-      c.fillRect(-140, 124, W + 280, 210);
-    }
-
-    _macroLight(c) {
-      c.save();
-      c.globalCompositeOperation = 'lighter';
-      softEllipse(c, 1010, 210, 92, 300, '255,232,190', 0.24, 0.40);
-      softEllipse(c, 1012, 210, 40, 280, '255,244,214', 0.26, 0.38);
-      softEllipse(c, 1030, 470, 360, 160, '255,224,176', 0.24, 0.45);
-      softEllipse(c, 1036, 448, 160, 74, '255,238,204', 0.22, 0.45);
+      // 飞溅的几滴
+      for (let i = 0; i < 14; i++) {
+        const ang = r() * Math.PI * 2;
+        const d = 200 + r() * 260;
+        const px = cx - 118 * e + Math.cos(ang) * d * e;
+        const py = cy + 26 + Math.sin(ang) * d * 0.6 * e;
+        const rr = (2 + r() * 9) * e;
+        c.fillStyle = 'rgba(84,12,10,' + (0.30 * e).toFixed(3) + ')';
+        c.beginPath();
+        c.ellipse(px, py, rr, rr * (0.6 + r() * 0.6), ang, 0, Math.PI * 2);
+        c.fill();
+      }
       c.restore();
     }
 
-    /** 倾覆的镏金银杯：凸弧剖面（碗），不是直筒喇叭 */
-    _cup(c, L) {
-      const cx = 1046, cy = 640, tilt = -0.06;
-      const R0 = 190;                 // 口半径
-      const AX1 = 318;                // 口到圈足
-      const rAt = (u) => R0 * Math.sqrt(Math.max(0.03, 1 - Math.pow(0.94 * u, 2)))
-        + 4.5 * Math.sin(u * 7.4);
-
-      softEllipse(c, 990, 878, 380, 70, '3,4,5', 0.82);
-      softEllipse(c, 860, 906, 300, 48, '3,4,5', 0.52);
-
+    _cupInk(c, L, t, cx, cy, s) {
+      const V4 = DFS.V4;
       c.save();
       c.translate(cx, cy);
-      c.rotate(tilt);
+      c.rotate(-0.30);
+      c.scale(s, s);
 
-      const NU = 88;
-      const top = [], bot = [];
-      for (let i = 0; i <= NU; i++) {
-        const u = i / NU;
-        const x = u * AX1;
-        top.push([x, -rAt(u)]);
-        bot.push([x, rAt(u)]);
-      }
-      const bodyPath = () => {
-        c.beginPath();
-        c.moveTo(top[0][0], top[0][1]);
-        for (let i = 1; i < top.length; i++) c.lineTo(top[i][0], top[i][1]);
-        for (let i = bot.length - 1; i >= 0; i--) c.lineTo(bot[i][0], bot[i][1]);
-        c.closePath();
-      };
-
-      bodyPath();
-      const bg = c.createLinearGradient(0, -R0, 0, R0);
-      bg.addColorStop(0, '#E7EBED');
-      bg.addColorStop(0.13, '#BEC6CA');
-      bg.addColorStop(0.34, '#828B92');
-      bg.addColorStop(0.56, '#474E54');
-      bg.addColorStop(0.74, '#5D666C');
-      bg.addColorStop(0.90, '#98A1A7');
-      bg.addColorStop(1, '#C0C7CC');
-      c.fillStyle = bg;
+      // 杯身：倒放的镏金樽（墨胎 + 金口）
+      const body = c.createLinearGradient(-40, -80, 130, 96);
+      body.addColorStop(0, 'rgba(52,40,24,0.97)');
+      body.addColorStop(0.50, 'rgba(26,20,12,0.99)');
+      body.addColorStop(1, 'rgba(10,8,6,1)');
+      c.fillStyle = body;
+      c.beginPath();
+      c.ellipse(34, 0, 104, 76, 0.04, 0, Math.PI * 2);
       c.fill();
 
-      c.save();
-      bodyPath();
-      c.clip();
-
-      // 贴地的反光暗面
-      let hg = vGrad(c, 26, R0, [
-        [0, 'rgba(10,12,14,0)'],
-        [1, 'rgba(10,12,14,0.55)']
-      ]);
-      c.fillStyle = hg;
-      c.fillRect(0, 18, AX1, R0);
-
-      // 门缝光落在银器上的长高光（沿碗的弧度走）
-      softBlob(c, 92, -rAt(0.24) * 0.70, 150, 26, -0.10, '255,252,240', 0.55, 0.45);
-      softBlob(c, 214, -rAt(0.52) * 0.68, 96, 17, -0.22, '255,252,240', 0.34, 0.45);
-      // 冷反光
-      softBlob(c, 150, -rAt(0.34) * 0.16, 150, 60, 0.02, '196,222,238', 0.14, 0.5);
-      // 口沿内侧的镏金暖光
-      softBlob(c, 26, 4, 60, 150, 0, '214,164,78', 0.28, 0.5);
-      // 底部的金反光
-      softBlob(c, 266, rAt(0.76) * 0.66, 100, 36, 0.1, '196,150,72', 0.16, 0.5);
-
-      // 锤揲起伏
-      c.globalAlpha = 0.08;
-      c.strokeStyle = 'rgba(255,255,255,1)';
-      c.lineWidth = 3;
-      for (let i = 0; i < 5; i++) {
-        const yy = -R0 * 0.58 + i * 58;
-        c.beginPath();
-        c.moveTo(4, yy);
-        c.bezierCurveTo(110, yy - 8, 230, yy + 6, AX1, yy - 4);
-        c.stroke();
-      }
-      c.globalAlpha = 1;
-
-      // 器身中线的一道细金箍（环一周 → 侧视一竖条）
-      c.fillStyle = 'rgba(196,154,76,0.38)';
-      c.fillRect(214, -rAt(0.67) - 4, 6.5, rAt(0.67) * 2 + 8);
-      c.fillStyle = 'rgba(246,216,150,0.26)';
-      c.fillRect(215.5, -rAt(0.67) - 4, 2, rAt(0.67) * 2 + 8);
-
-      c.restore();
-
-      // 口沿（椭圆 + 内壁 + 沿口的厚度）
-      c.save();
-      c.translate(2, 0);
-      c.rotate(-0.04);
+      // 口沿（倾倒的一侧朝向左边）
       c.beginPath();
-      c.ellipse(0, 0, 58, R0, 0, 0, TAU);
-      const ig = c.createLinearGradient(-58, -60, 48, 80);
-      ig.addColorStop(0, '#171310');
-      ig.addColorStop(0.40, '#3A2D1F');
-      ig.addColorStop(0.68, '#100D0A');
-      ig.addColorStop(1, '#3A2A18');
-      c.fillStyle = ig;
+      c.ellipse(-64, -10, 40, 66, 0.24, 0, Math.PI * 2);
+      c.fillStyle = 'rgba(6,5,3,0.99)';
       c.fill();
-      c.save();
-      c.beginPath();
-      c.ellipse(0, 0, 55, R0 - 3, 0, 0, TAU);
-      c.clip();
-      // 内壁的远侧受光（一道弯月）
-      softBlob(c, -20, -R0 * 0.52, 46, 66, 0.2, '236,214,176', 0.40, 0.5);
-      softBlob(c, 10, -R0 * 0.20, 60, 50, 0, '150,140,120', 0.10, 0.5);
-      // 杯底残酒
-      softBlob(c, 2, R0 * 0.56, 34, 66, 0, '104,16,13', 0.72, 0.5);
-      softBlob(c, -4, R0 * 0.48, 16, 30, 0, '176,62,42', 0.30, 0.5);
-      c.restore();
-      // 金口沿（外亮内暗的两道，才像有厚度）
-      c.strokeStyle = 'rgba(214,172,88,0.98)';
-      c.lineWidth = 15;
-      c.beginPath();
-      c.ellipse(0, 0, 58, R0, 0, 0, TAU);
+      c.strokeStyle = 'rgba(232,188,110,0.96)';
+      c.lineWidth = 8;
       c.stroke();
-      c.strokeStyle = 'rgba(255,236,178,0.85)';
-      c.lineWidth = 3.4;
-      c.beginPath();
-      c.ellipse(-1.4, -1.6, 61, R0 + 3, 0, Math.PI * 0.74, Math.PI * 1.58);
-      c.stroke();
-      c.strokeStyle = 'rgba(120,86,40,0.55)';
-      c.lineWidth = 2.6;
-      c.beginPath();
-      c.ellipse(0.8, 1.4, 52, R0 - 4, 0, Math.PI * -0.38, Math.PI * 0.30);
-      c.stroke();
-      c.restore();
-
-      // 圈足：比端面小一圈，且被器身包住
-      c.save();
-      c.translate(AX1 - 6, 0);
-      c.beginPath();
-      c.ellipse(0, 0, 20, 50, 0, 0, TAU);
-      c.fillStyle = 'rgba(12,10,9,0.96)';
-      c.fill();
-      c.strokeStyle = 'rgba(190,146,70,0.95)';
-      c.lineWidth = 9;
-      c.beginPath();
-      c.ellipse(0, 0, 18, 48, 0, 0, TAU);
-      c.stroke();
-      c.strokeStyle = 'rgba(250,222,158,0.55)';
-      c.lineWidth = 2;
-      c.beginPath();
-      c.ellipse(-1, -1, 22, 52, 0, Math.PI * 0.72, Math.PI * 1.56);
-      c.stroke();
-      c.restore();
-
-      // 口沿与器身交界的一道暗缝
-      c.strokeStyle = 'rgba(12,10,8,0.5)';
-      c.lineWidth = 2.6;
-      c.beginPath();
-      c.ellipse(6, 0, 54, R0 - 6, 0, -Math.PI * 0.44, Math.PI * 0.44);
+      c.strokeStyle = 'rgba(120,84,38,0.7)';
+      c.lineWidth = 2.4;
       c.stroke();
 
-      c.restore();
-    }
-
-    _wine(c, L, t) {
-      const MY = 176;                  // 口沿下唇的高度
-      c.save();
-      c.translate(1046, 636);
-      c.rotate(-0.06);
-
-      // 主股：从杯口下缘淌到地面洼处
-      taper3(c, [-24, MY], [-150, 250], [-280, 330], [-430, 372],
-        44, 112, 'rgba(44,8,9,0.96)');
-      // 更淡的一层铺开
-      taper3(c, [-14, MY + 24], [-180, 292], [-320, 372], [-506, 418],
-        28, 150, 'rgba(58,11,11,0.55)');
-      // 细流：沿冰裂分出去
-      taper3(c, [-20, MY - 14], [-126, 214], [-214, 262], [-338, 284],
-        10, 30, 'rgba(66,13,13,0.62)');
-      taper3(c, [-30, MY + 46], [-70, 330], [-170, 430], [-292, 470],
-        8, 26, 'rgba(52,9,10,0.45)');
-
-      // 湿光
-      c.globalAlpha = 0.26;
-      c.strokeStyle = 'rgba(226,142,112,0.95)';
-      c.lineWidth = 4.2;
-      c.lineCap = 'round';
+      // 圈足（右侧的小环）
       c.beginPath();
-      c.moveTo(-30, MY - 8);
-      c.bezierCurveTo(-158, 238, -286, 318, -434, 360);
+      c.ellipse(116, 12, 17, 31, -0.18, 0, Math.PI * 2);
+      c.strokeStyle = 'rgba(214,170,98,0.88)';
+      c.lineWidth = 5.5;
       c.stroke();
-      c.globalAlpha = 0.12;
-      c.strokeStyle = 'rgba(255,214,180,0.95)';
-      c.lineWidth = 1.8;
-      c.beginPath();
-      c.moveTo(-30, MY - 18);
-      c.bezierCurveTo(-158, 228, -286, 308, -434, 350);
-      c.stroke();
-      c.globalAlpha = 1;
-      c.restore();
 
-      // 洼处的一摊
-      const px = 552, py = 966;
-      const r0 = DFS.rng(9311);
-      c.save();
-      c.beginPath();
-      const pts = [];
-      for (let i = 0; i < 18; i++) {
-        const a = (i / 18) * TAU;
-        const rr = 0.76 + r0() * 0.40;
-        pts.push([px + Math.cos(a) * 176 * rr, py + Math.sin(a) * 60 * rr]);
-      }
-      c.moveTo(pts[0][0], pts[0][1]);
-      for (let i = 1; i <= pts.length; i++) {
-        const p = pts[i % pts.length];
-        const q = pts[(i + 1) % pts.length];
-        c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2);
-      }
-      c.closePath();
-      c.fillStyle = 'rgba(34,6,7,0.97)';
-      c.fill();
-      softEllipse(c, px - 34, py - 8, 120, 38, '78,14,14', 0.5, 0.55);
-      softEllipse(c, px + 56, py + 12, 84, 26, '18,3,4', 0.55, 0.55);
-      // 镜面高光
-      c.globalAlpha = 0.30;
-      c.fillStyle = 'rgb(222,144,110)';
-      c.beginPath();
-      c.ellipse(px - 52, py - 22, 66, 8, -0.07, 0, TAU);
-      c.fill();
-      c.globalAlpha = 0.14;
-      c.beginPath();
-      c.ellipse(px + 58, py + 2, 34, 5, 0.05, 0, TAU);
-      c.fill();
-      c.globalAlpha = 1;
-      c.restore();
-    }
-
-    /* ---------------- 雪 + 雪下的手 ---------------- */
-    _driftShape(c, x0, y0, w, amp, fill) {
-      c.beginPath();
-      c.moveTo(x0, y0);
-      const n = 4;
-      for (let i = 1; i <= n; i++) {
-        const u = i / n;
-        const x = x0 + w * u;
-        const y = y0 + Math.sin(u * 6.0 + x0 * 0.01) * amp - u * amp * 0.3;
-        c.quadraticCurveTo(x - w / n * 0.5, y - amp * 0.7, x, y);
-      }
-      c.lineTo(x0 + w, 2200);
-      c.lineTo(x0, 2200);
-      c.closePath();
-      c.fillStyle = fill;
-      c.fill();
-    }
-
-    _snow(c, L, t) {
-      // 三层雪坡：边缘各不相同，才不像一条白带
-      this._driftShape(c, -320, 1392, 1200, 26, 'rgba(212,221,229,0.95)');
-      this._driftShape(c, 700, 1300, 1250, 34, 'rgba(224,232,239,0.96)');
-      const sg = vGrad(c, 1180, 1900, [
-        [0, 'rgba(240,245,249,0.98)'],
-        [0.22, 'rgba(210,220,229,0.97)'],
-        [0.55, 'rgba(160,172,186,0.96)'],
-        [1, 'rgba(92,104,120,0.96)']
-      ]);
-      this._driftShape(c, -320, 1252, 2600, 22, sg);
-
-      // 雪脊亮线（只描最上缘，不横穿画面）
-      c.save();
-      c.strokeStyle = 'rgba(250,253,255,0.62)';
-      c.lineWidth = 3.4;
-      c.beginPath();
-      c.moveTo(-320, 1252);
-      for (let i = 1; i <= 4; i++) {
-        const u = i / 4;
-        const x = -320 + 2600 * u;
-        const y = 1252 + Math.sin(u * 6.0 + -320 * 0.01) * 22 - u * 22 * 0.3;
-        c.quadraticCurveTo(x - 2600 / 4 * 0.5, y - 22 * 0.7, x, y);
-      }
-      c.stroke();
-      // 上缘的一道暗（雪坡背光的边界）
-      c.strokeStyle = 'rgba(44,56,74,0.30)';
-      c.lineWidth = 5;
-      c.beginPath();
-      c.moveTo(-320, 1264);
-      for (let i = 1; i <= 4; i++) {
-        const u = i / 4;
-        const x = -320 + 2600 * u;
-        const y = 1266 + Math.sin(u * 6.0 - 3.2) * 22 - u * 22 * 0.3;
-        c.quadraticCurveTo(x - 2600 / 4 * 0.5, y - 22 * 0.7, x, y);
-      }
-      c.stroke();
-      c.restore();
-
-      // 雪面的起伏：顺着坡走的暗带（体积感）
-      c.save();
-      for (let i = 0; i < 7; i++) {
-        const y = 1312 + i * 76;
-        c.globalAlpha = 0.15 - i * 0.012;
-        c.strokeStyle = 'rgba(78,94,114,1)';
-        c.lineWidth = 18 + i * 8;
-        c.beginPath();
-        c.moveTo(-320, y + 40);
-        c.bezierCurveTo(300, y - 22, 900, y + 44, 1500, y - 10);
-        c.bezierCurveTo(1800, y - 38, 2100, y + 18, 2300, y);
-        c.stroke();
+      // 器身金线（一道枯笔勾出的高光，不是 CG 高光）
+      if (V4) {
+        V4.inkStroke(c, -34, -58, 96, 30, {
+          w: 7.5, alpha: 0.30, color: '246,228,190', dry: 0.82, seed: 9
+        });
+        V4.inkStroke(c, -50, 42, 104, 52, {
+          w: 3.2, alpha: 0.18, color: '246,228,190', dry: 0.86, seed: 11
+        });
       }
       c.restore();
-
-      // 雪堆
-      for (const b of this.drift) {
-        softEllipse(c, b.x, b.y, b.rx, b.ry, '236,242,247', b.a, 0.5);
-        softEllipse(c, b.x + b.rx * 0.10, b.y + b.ry * 0.96, b.rx * 0.82, b.ry * 0.46,
-          '74,88,104', b.a * 0.55, 0.55);
-      }
-
-      // 手底下的雪窝
-      softEllipse(c, 946, 1466, 330, 84, '58,72,94', 0.54, 0.55);
-      softEllipse(c, 950, 1502, 230, 46, '36,48,70', 0.44, 0.55);
-
-      // 雪粒微光
-      c.save();
-      c.globalCompositeOperation = 'lighter';
-      for (const g of this.glitter) {
-        const a = g.a * (0.30 + 0.70 * Math.max(0, Math.sin(t * 1.6 + g.ph)));
-        c.globalAlpha = a * 0.75;
-        c.fillStyle = 'rgba(246,252,255,1)';
-        c.fillRect(g.x, g.y, g.r, g.r);
-      }
-      c.restore();
-    }
-
-    /** 雪层下的一只小手：一小块青紫手背 + 5 根极细弧线，半埋，不写实
-     *  局部坐标里 +x 指向指尖，手腕在 -x 方向没入雪中。 */
-    _hand(c, L, t) {
-      const X = 926, Y = 1442, ROT = -2.02;     // 指尖朝左上
-
-      c.save();
-      c.translate(X, Y);
-      c.rotate(ROT);
-
-      // 手背：拉长的一块，往手腕方向收
-      c.beginPath();
-      c.moveTo(6, -58);
-      c.bezierCurveTo(-40, -62, -96, -56, -152, -44);
-      c.bezierCurveTo(-178, -38, -182, 34, -156, 40);
-      c.bezierCurveTo(-100, 54, -42, 62, 8, 58);
-      c.bezierCurveTo(20, 30, 20, -30, 6, -58);
-      c.closePath();
-      const hb = c.createLinearGradient(-150, -50, 30, 60);
-      hb.addColorStop(0, 'rgba(104,92,116,0.94)');
-      hb.addColorStop(0.42, 'rgba(86,74,92,0.85)');
-      hb.addColorStop(1, 'rgba(48,40,56,0.84)');
-      c.fillStyle = hb;
-      c.fill();
-      // 指节的一道亮脊
-      c.globalAlpha = 0.34;
-      c.strokeStyle = 'rgba(184,192,204,1)';
-      c.lineWidth = 4.4;
-      c.lineCap = 'round';
-      c.beginPath();
-      c.moveTo(-120, -34);
-      c.quadraticCurveTo(-50, -54, 6, -40);
-      c.stroke();
-      c.globalAlpha = 1;
-
-      // 5 根手指：短、细、略垂，扇面只有 ±12°
-      const fingers = [
-        { y: -46, len: 52, w0: 14, w1: 6.0, ang: -0.24 },
-        { y: -24, len: 64, w0: 15.5, w1: 6.6, ang: -0.10 },
-        { y: 0, len: 68, w0: 16, w1: 6.8, ang: 0.04 },
-        { y: 24, len: 60, w0: 15, w1: 6.4, ang: 0.16 },
-        { y: 46, len: 50, w0: 13, w1: 5.8, ang: 0.30 }
-      ];
-      for (let i = 0; i < fingers.length; i++) {
-        const f = fingers[i];
-        const a = [4, f.y];
-        const cx1 = f.len * 0.60;
-        const cy1 = f.y + Math.sin(f.ang) * f.len * 0.60 + 6;
-        const tip = [f.len, f.y + Math.sin(f.ang) * f.len + 14];
-        taper2(c, a, [cx1, cy1], tip, f.w0, f.w1, 'rgba(132,120,144,0.80)');
-        // 受光的一线
-        c.globalAlpha = 0.28;
-        c.strokeStyle = 'rgba(206,202,214,1)';
-        c.lineWidth = 2.2;
-        c.beginPath();
-        c.moveTo(a[0] + 2, a[1] - 4);
-        c.quadraticCurveTo(cx1, cy1 - 4, tip[0], tip[1] - 3);
-        c.stroke();
-        c.globalAlpha = 1;
-      }
-
-      // 半埋：雪盖住手腕这一段（边缘不规则）
-      const cov = c.createLinearGradient(-150, 0, -10, 0);
-      cov.addColorStop(0, 'rgba(238,244,248,0.98)');
-      cov.addColorStop(0.62, 'rgba(234,240,245,0.90)');
-      cov.addColorStop(1, 'rgba(232,238,243,0)');
-      c.fillStyle = cov;
-      c.beginPath();
-      c.moveTo(-190, -80);
-      c.bezierCurveTo(-150, -46, -150, 26, -168, 72);
-      c.lineTo(-92, 96);
-      c.bezierCurveTo(-76, 40, -86, -30, -104, -86);
-      c.closePath();
-      c.fill();
-      c.restore();
-
-      // 压在手背/指根上的碎雪
-      for (let i = 0; i < 9; i++) {
-        const a = h(8821, i * 3 + 1) * TAU;
-        const rr = 30 + h(8821, i * 3 + 2) * 96;
-        const px = X + Math.cos(a) * rr * 1.2 + 26;
-        const py = Y + 16 + Math.sin(a) * rr * 0.32;
-        softEllipse(c, px, py, 16 + h(8821, i * 3 + 3) * 34, 8 + h(8821, i * 3 + 3) * 11,
-          '242,247,251', 0.66, 0.5);
-      }
-    }
-
-    _macroWorld(c, L, t) {
-      this._macroGround(c, L, t);
-      this._macroThreshold(c);
-      this._macroLight(c);
-      this._cup(c, L);
-      this._wine(c, L, t);
-      this._snow(c, L, t);
-      this._hand(c, L, t);
-
-      // 近景压角（浅景深的重量感，不用 blur）
-      const g = vGrad(c, 1780, H + 260, [
-        [0, 'rgba(6,7,9,0)'],
-        [1, 'rgba(6,7,9,0.90)']
-      ]);
-      c.fillStyle = g;
-      c.fillRect(-300, 1780, W + 600, 640);
     }
 
     shotMacro(ctx, L, t) {
-      const k = clamp((L - TL.pan) / (TL.pull - TL.pan));
-      const panY = Ease.inOutCubic(k) * 880;          // 下摇
-      const push = 1.0 + 0.055 * clamp((L - TL.macro) / (TL.pull - TL.macro));
+      const k = clamp((L - TL.macro) / (TL.pull - TL.macro));
+      const panY = DFS.Ease.inOutCubic(k) * 130;
+      const push = 1.0 + 0.045 * k;
+      const cx = W * 0.58, cy = H * 0.46;
 
       V3.eight(ctx, t, {
-        l1: (c) => {
-          c.fillStyle = '#07080A';
-          c.fillRect(0, 0, W, H);
-        },
+        grade: 'warm',
+        grain: 0.24, vignette: 0.20, vignetteMid: 0.02,
+        dustAlpha: 0.16,
+        dustOpts: { count: 36, color: '226,198,138', seed: 4111 },
         l2: (c) => {
           c.save();
-          c.beginPath();
-          c.rect(0, 0, W, H);
-          c.clip();
-          c.translate(W / 2, H * 0.50);
+          c.translate(W * 0.5, H * 0.5);
           c.scale(push, push);
-          c.translate(-W / 2, -H * 0.50 - panY);
-          this._macroWorld(c, L, t);
-          c.restore();
-        },
-        l3: (c) => {
+          c.translate(-W * 0.5, -H * 0.5 + panY);
+          // 朱砂酒渍（先于杯子）
+          this._wineStain(c, L, t, cx - 120, cy + 90);
+          // 金樽
+          this._cupInk(c, L, t, cx, cy, 1.0);
+          // 几粒金粉
+          const r = DFS.rng(8821);
           c.save();
           c.globalCompositeOperation = 'lighter';
-          const g = c.createLinearGradient(0, 0, 0, H * 0.62);
-          g.addColorStop(0, 'rgba(220,232,244,0.09)');
-          g.addColorStop(1, 'rgba(220,232,244,0)');
-          c.fillStyle = g;
-          c.fillRect(0, 0, W, H * 0.62);
+          for (let i = 0; i < 40; i++) {
+            const px = cx + (r() - 0.5) * 700 - 60;
+            const py = cy + (r() - 0.5) * 460 + 60;
+            c.globalAlpha = 0.10 + r() * 0.34;
+            c.fillStyle = 'rgba(246,214,150,1)';
+            c.fillRect(px, py, 1 + r() * 2.4, 1 + r() * 2.4);
+          }
+          c.restore();
           c.restore();
         },
-        grade: 'cold',
-        dust: true,
-        dustAlpha: 0.22,
-        dustOpts: { count: 120, color: '206,214,222', seed: 4111 },
-        grain: 0.42,
-        vignette: 0.38,
-        vignetteMid: 0.06
+        l5: (c) => {
+          // 微距里只留一行极小的考据小字（竖排夹注）
+          const a = clamp((L - TL.macro - 0.5) / 0.9);
+          if (a > 0.01 && DFS.V4) {
+            DFS.V4.annotation(c, (DFS.STORY.texts.s03_b || ''), {
+              x: W - 150, y: 250, size: 22, gap: 1.16, color: '120,104,80',
+              alpha: a * 0.55, family: T.fonts.kai
+            });
+          }
+        }
       });
     }
+
 
     /* =====================================================================
        镜头 5 — 猛烈拉起：黑白暴风雪旷野（31.4–33.0）+ 静帧（33.0–38.3）
@@ -1502,13 +991,14 @@
     _wasteWorld(c, L, t, rush) {
       const hz = H * 0.605;
 
+      // V4：雪原压到真正的墨黑，只在地平线留一道雪光 —— 黑白张力
       const g = vGrad(c, hz, H * 1.42, [
-        [0, '#6E767D'],
-        [0.07, '#525A61'],
-        [0.24, '#383E43'],
-        [0.52, '#232930'],
-        [0.78, '#191D21'],
-        [1, '#0F1215']
+        [0.00, '#9AA3A9'],
+        [0.055, '#59646B'],
+        [0.15, '#232A30'],
+        [0.30, '#0C1013'],
+        [0.55, '#050708'],
+        [1.00, '#010202']
       ]);
       c.fillStyle = g;
       c.fillRect(-W * 0.7, hz, W * 2.4, H * 1.0);
@@ -1518,7 +1008,7 @@
       for (let i = 0; i < 14; i++) {
         const x = -120 + i * 165 + rr() * 110;
         softEllipse(c, x, hz - 10 + rr() * 34, 250 + rr() * 210, 26 + rr() * 40,
-          '196,204,212', 0.10 + rr() * 0.16);
+          '206,214,222', 0.12 + rr() * 0.20);
       }
 
       // 雪面风纹
@@ -1621,17 +1111,20 @@
     }
 
     _wasteSky(c, L, t) {
+      // V4：黑天 + 雪原的强对比（中灰带太宽就会"发灰发脏"）
       const g = vGrad(c, 0, H, [
-        [0, '#14181C'],
-        [0.28, '#1F2429'],
-        [0.50, '#2C3238'],
-        [0.60, '#3A424A'],
-        [0.66, '#2F353B'],
-        [1, '#0B0D10']
+        [0, '#07090B'],
+        [0.30, '#0C0F12'],
+        [0.52, '#151A1E'],
+        [0.605, '#101316'],
+        [0.615, '#2A3036'],
+        [0.66, '#8E979C'],
+        [0.78, '#C9D0D2'],
+        [1, '#7C8489']
       ]);
       c.fillStyle = g;
       c.fillRect(0, 0, W, H);
-      softEllipse(c, W * 0.5, H * 0.60, W * 0.66, H * 0.18, '198,206,212', 0.12);
+      softEllipse(c, W * 0.5, H * 0.60, W * 0.66, H * 0.10, '226,232,234', 0.10);
     }
 
     /* =====================================================================
@@ -1640,26 +1133,36 @@
     _texts(ctx, L, t) {
       const st = DFS.STORY.texts;
 
-      const scrimA = clamp((L - 9.55) / 0.8) * 0.66;
+      const V4 = DFS.V4;
+      const scrimA = clamp((L - 8.85) / 0.8) * 0.66;
       if (scrimA > 0.01) {
         softEllipse(ctx, W * 0.5, 802, 780, 210, '6,7,8', scrimA, 0.55);
       }
 
       const br = HUB.idleMicroMotion(t, 2.3, 0.55);
 
-      /* ---- 左：朱门酒肉臭（金漆） ---- */
-      const eL = HUB.multiEntrance(L, 9.02, { duration: 0.95, rise: 24, scaleFrom: 0.972, blur: 0 });
-      if (eL.p > 0.002) {
-        const a = clamp(eL.alpha);
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.translate(0, eL.dy + br.dy * 0.35);
-        const m = V3.inkText(ctx, st.s03_left, {
-          x: 460, y: 300, size: 84, weight: 900, family: T.fonts.heavy,
-          color: GOLD, tracking: 8, seed: 5
+      const line = (id, text, o) => {
+        if (V4) {
+          const m = V4.chantLine(ctx, text, {
+            id, L, x: o.x, y: o.y, size: o.size, weight: o.weight || 900,
+            family: o.family || T.fonts.heavy, color: o.color, tracking: o.tracking || 6,
+            seed: o.seed || 5, halo: o.halo === undefined ? 0.42 : o.halo
+          });
+          if (m) DFS.dbgBox(id, m.x, m.y, m.x + m.w, m.y + m.h);
+          return m;
+        }
+        return V3.inkText(ctx, text, {
+          x: o.x, y: o.y, size: o.size, weight: o.weight || 900,
+          family: o.family || T.fonts.heavy, color: o.color, tracking: o.tracking || 6, seed: o.seed || 5
         });
-        ctx.restore();
-        if (m) DFS.dbgBox('s03_left', 460 - m.w / 2, 300 - m.h / 2, 460 + m.w / 2, 300 + m.h / 2);
+      };
+
+      /* ---- 左：朱门酒肉臭（金漆）——史笔刀刻 ---- */
+      const mL = line('s03_left', st.s03_left, {
+        x: 460, y: 300 + br.dy * 0.35, size: 84, color: GOLD, tracking: 8, seed: 5
+      });
+      if (mL) {
+        const a = clamp(L - 8.10 > 0 ? 1 : 0);
         ctx.save();
         ctx.globalAlpha = a * 0.55;
         ctx.strokeStyle = GOLD;
@@ -1671,21 +1174,13 @@
         ctx.restore();
       }
 
-      /* ---- 右：路有冻死骨（雪白） ---- */
-      const eR = HUB.multiEntrance(L, 9.18, { duration: 0.95, rise: 24, scaleFrom: 0.972, blur: 0 });
-      if (eR.p > 0.002) {
-        const a = clamp(eR.alpha);
+      /* ---- 右：路有冻死骨（雪白）---- */
+      const mR = line('s03_right', st.s03_right, {
+        x: 1460, y: 300 - br.dy * 0.35, size: 84, color: SNOWTXT, tracking: 8, seed: 7
+      });
+      if (mR) {
         ctx.save();
-        ctx.globalAlpha = a;
-        ctx.translate(0, eR.dy - br.dy * 0.35);
-        const m = V3.inkText(ctx, st.s03_right, {
-          x: 1460, y: 300, size: 84, weight: 900, family: T.fonts.heavy,
-          color: SNOWTXT, tracking: 8, seed: 7
-        });
-        ctx.restore();
-        if (m) DFS.dbgBox('s03_right', 1460 - m.w / 2, 300 - m.h / 2, 1460 + m.w / 2, 300 + m.h / 2);
-        ctx.save();
-        ctx.globalAlpha = a * 0.42;
+        ctx.globalAlpha = 0.42;
         ctx.strokeStyle = SNOWTXT;
         ctx.lineWidth = 1.4;
         ctx.beginPath();
@@ -1695,34 +1190,15 @@
         ctx.restore();
       }
 
-      /* ---- 中央下方两行（米白） ---- */
-      const eA = HUB.multiEntrance(L, 9.62, { duration: 0.90, rise: 18, scaleFrom: 0.985, blur: 0 });
-      if (eA.p > 0.002) {
-        const a = clamp(eA.alpha);
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.translate(0, eA.dy);
-        const m = V3.inkText(ctx, st.s03_a, {
-          x: W * 0.5, y: 760, size: 46, weight: 500, family: T.fonts.serif,
-          color: 'rgba(244,239,230,0.94)', tracking: 2, seed: 11
-        });
-        ctx.restore();
-        if (m) DFS.dbgBox('s03_a', W * 0.5 - m.w / 2, 760 - m.h / 2, W * 0.5 + m.w / 2, 760 + m.h / 2);
-      }
-
-      const eB = HUB.multiEntrance(L, 9.86, { duration: 0.90, rise: 18, scaleFrom: 0.985, blur: 0 });
-      if (eB.p > 0.002) {
-        const a = clamp(eB.alpha);
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.translate(0, eB.dy);
-        const m = V3.inkText(ctx, st.s03_b, {
-          x: W * 0.5, y: 840, size: 46, weight: 500, family: T.fonts.serif,
-          color: 'rgba(238,232,220,0.90)', tracking: 2, seed: 13
-        });
-        ctx.restore();
-        if (m) DFS.dbgBox('s03_b', W * 0.5 - m.w / 2, 840 - m.h / 2, W * 0.5 + m.w / 2, 840 + m.h / 2);
-      }
+      /* ---- 中央下方两行（米白）——墓志碑拓：由淡及浓洇出 ---- */
+      line('s03_a', st.s03_a, {
+        x: W * 0.5, y: 760, size: 46, weight: 500, family: T.fonts.serif,
+        color: 'rgba(244,239,230,0.94)', tracking: 2, seed: 11, halo: 0.46
+      });
+      line('s03_b', st.s03_b, {
+        x: W * 0.5, y: 840, size: 46, weight: 500, family: T.fonts.serif,
+        color: 'rgba(238,232,220,0.90)', tracking: 2, seed: 13, halo: 0.46
+      });
     }
 
     shotWide(ctx, L, t) {
